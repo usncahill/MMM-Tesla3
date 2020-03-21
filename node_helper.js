@@ -1,7 +1,7 @@
 'use strict';
 
 /* Magic Mirror
- * Module: MMM-Tesla
+ * Module: MMM-Tesla2
  *
  * MIT Licensed.
  */
@@ -34,7 +34,7 @@ async function getTokenInternal(config) {
 			tokenPath: '/oauth/token'
 		  },
 		  http: {
-			headers: { 'User-Agent': 'MMM-Tesla' }
+			headers: { 'User-Agent': 'MMM-Tesla2' }
 		}
 	};
 		
@@ -76,7 +76,7 @@ module.exports = NodeHelper.create({
 				request({
 					url: base_data_url + '/data_request/charge_state',
 					method: 'GET',
-					headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla' }
+					headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla2' }
 				}, function (error, response, body) {
 					console.log('Polling charge state'); // Print the HTML 
 					if (!error && response.statusCode == 200) {
@@ -85,7 +85,7 @@ module.exports = NodeHelper.create({
 						request({
 							url: base_data_url + '/data_request/drive_state',
 							method: 'GET',
-							headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla' }
+							headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla2' }
 						}, function (error, response, body) {
 							console.log('Polling drive state');
 							self.drivestate_data = body;
@@ -108,7 +108,7 @@ module.exports = NodeHelper.create({
 				request({
 					url: base_data_url + '/data_request/charge_state',
 					method: 'GET',
-					headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla' }
+					headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla2' }
 				}, function (error, response, body) {
 					console.log('Polling charge state'); // Print the HTML 
 					if (!error && response.statusCode == 200) {
@@ -117,7 +117,7 @@ module.exports = NodeHelper.create({
 						request({
 							url: base_data_url + '/data_request/drive_state',
 							method: 'GET',
-							headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla' }
+							headers: { 'Authorization': "Bearer " + accessToken, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla2' }
 						}, function (error, response, body) {
 							console.log('Polling drive state');
 							self.drivestate_data = body;

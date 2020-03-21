@@ -1,13 +1,13 @@
 /* global Module */
 
 /* Magic Mirror
- * Module: MMM-Tesla
+ * Module: MMM-Tesla2
  *
  * By Jan Henrik Gundelsby and Martin Burheim Tingstad
  * MIT Licensed.
  */
 
-Module.register("MMM-Tesla",{
+Module.register("MMM-Tesla2",{
 
 	defaults: {
 		refreshInterval: 1000 * 60 * 60, //refresh every hour
