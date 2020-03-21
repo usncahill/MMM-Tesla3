@@ -16,7 +16,7 @@ Module.register("MMM-Tesla2",{
 		lang: config.language,
 
 		initialLoadDelay: 0, // 0 seconds delay
-		retryDelay: 2500,
+		retryDelay: 2500
 	},
 	
 	// Define required scripts.
@@ -35,6 +35,8 @@ Module.register("MMM-Tesla2",{
 	},
 
 	getDom: function() {
+		var batteryWidth = 300;
+		var batteryHeight = batteryWidth/4;
 		console.log('getDom() - ' + this.battery_level );
 		var wrapper = document.createElement("div");
 
@@ -48,13 +50,6 @@ Module.register("MMM-Tesla2",{
 			return wrapper;
 		}
 
-    	var iframe = document.createElement("iframe");
-    	iframe.src='https://www.google.com/maps/embed/v1/place?key=' + this.config.google_api_key + '&q=' + this.latitude + ',' + this.longitude + '&zoom=8'
-    	iframe.width="200";
-    	iframe.height="150";
-    	iframe.style="border:0";
-    	//wrapper.appendChild(iframe);
-
 		var textElement = document.createElement("div");
 		   textElement.innerHTML = '<b>Tesla</b><br/>' +
 		    this.charging_state + ' - ' + Math.floor(this.range) + ' km';
@@ -63,36 +58,35 @@ Module.register("MMM-Tesla2",{
 
 		var svgNS = "http://www.w3.org/2000/svg";
 		var svg = document.createElementNS(svgNS, "svg");
-		svg.setAttribute('width', 212);
-		svg.setAttribute('height', 60);
+		svg.setAttribute('width', batteryWidth);
+		svg.setAttribute('height', batteryHeight);
 
 		var batteryFrame = document.createElementNS(svgNS, "rect");
 
-		batteryFrame.setAttribute('width', 206);
-	    batteryFrame.setAttribute('height', 58);
+		batteryFrame.setAttribute('width', batteryWidth);
+	    batteryFrame.setAttribute('height', batteryHeight);
 		batteryFrame.setAttribute('style', "fill:rgba(0,0,0,0);stroke-width:2;stroke:rgba(255,255,255, 0.75)");
-		batteryFrame.setAttribute("rx", 5);
-		batteryFrame.setAttribute("ry", 5);
+		batteryFrame.setAttribute("rx", batteryWidth/80);
+		batteryFrame.setAttribute("ry", batteryWidth/80);
 		svg.appendChild(batteryFrame);
 
 		var shiftedContentContainer = document.createElementNS(svgNS, "svg");
-		shiftedContentContainer.setAttribute("x", "3");
-		shiftedContentContainer.setAttribute("y", "3");
-	    //shiftedContentContainer.setAttribute("transform", "translate(3,3)");
+		shiftedContentContainer.setAttribute("x", batteryWidth/80);
+		shiftedContentContainer.setAttribute("y", batteryWidth/80);
 
 		var batteryContent = document.createElementNS(svgNS, "rect");
 
-	    batteryContent.setAttribute('width', this.battery_level*2);
-	    batteryContent.setAttribute('height', 52);
+	    batteryContent.setAttribute('width', this.battery_level/100*batteryWidth);
+	    batteryContent.setAttribute('height', batteryHeight*0.9);
 		batteryContent.setAttribute('style', "fill:rgba(45,220,45,0.7)");
-		batteryContent.setAttribute("rx", 1);
-		batteryContent.setAttribute("ry", 1);
+		batteryContent.setAttribute("rx", batteryWidth/200);
+		batteryContent.setAttribute("ry", batteryHeight/50);
 		shiftedContentContainer.appendChild(batteryContent);
 
 		var chargeLevelText = document.createElementNS(svgNS, "text");
-		chargeLevelText.setAttribute("x", "25");
-		chargeLevelText.setAttribute("y", "36");
-		chargeLevelText.setAttribute("style", "fill:rgba(255,255,255,0.4); font: bold 30px sans-serif;");
+		chargeLevelText.setAttribute("x", 25/200*batteryWidth);
+		chargeLevelText.setAttribute("y", 36/50*batteryHeight);
+		chargeLevelText.setAttribute("style", "fill:rgba(255,255,255,0.4); font: bold " + 20*batteryWidth/200 + "px sans-serif;");
 
 		var textNode = document.createTextNode(this.battery_level + '%');
 		chargeLevelText.appendChild(textNode);
@@ -100,35 +94,35 @@ Module.register("MMM-Tesla2",{
 
 		var batteryBar = document.createElementNS(svgNS, "path");
 		batteryBar.setAttribute("stroke", "#ffffff");
-		batteryBar.setAttribute("d", "M100 0 L100 52");
+		batteryBar.setAttribute("d", "M" + batteryWidth*50/100 + " 0 L" + batteryWidth*50/100 + " " + +batteryHeight + +2);
 		batteryBar.setAttribute('stroke-width', "2");
 		batteryBar.setAttribute('opacity', "0.25");
 		shiftedContentContainer.appendChild(batteryBar);
 
 		var batteryBar = document.createElementNS(svgNS, "path");
 		batteryBar.setAttribute("stroke", "#ffffff");
-		batteryBar.setAttribute("d", "M120 0 L120 52");
+		batteryBar.setAttribute("d", "M" + batteryWidth*60/100 + " 0 L" + batteryWidth*60/100 + " " + +batteryHeight + +2);
 		batteryBar.setAttribute('stroke-width', "2");
 		batteryBar.setAttribute('opacity', "0.25");
 		shiftedContentContainer.appendChild(batteryBar);
 
 		var batteryBar = document.createElementNS(svgNS, "path");
 		batteryBar.setAttribute("stroke", "#ffffff");
-		batteryBar.setAttribute("d", "M140 0 L140 52");
+		batteryBar.setAttribute("d", "M" + batteryWidth*70/100 + " 0 L" + batteryWidth*70/100 + " " + +batteryHeight + +2);
 		batteryBar.setAttribute('stroke-width', "2");
 		batteryBar.setAttribute('opacity', "0.25");
 		shiftedContentContainer.appendChild(batteryBar);
 
 		var batteryBar = document.createElementNS(svgNS, "path");
 		batteryBar.setAttribute("stroke", "#ffffff");
-		batteryBar.setAttribute("d", "M160 0 L160 52");
+		batteryBar.setAttribute("d", "M" + batteryWidth*80/100 + " 0 L" + batteryWidth*80/100 + " " + +batteryHeight + +2);
 		batteryBar.setAttribute('stroke-width', "2");
 		batteryBar.setAttribute('opacity', "0.25");
 		shiftedContentContainer.appendChild(batteryBar);
 
 		var batteryBar = document.createElementNS(svgNS, "path");
 		batteryBar.setAttribute("stroke", "#ffffff");
-		batteryBar.setAttribute("d", "M180 0 L180 52");
+		batteryBar.setAttribute("d", "M" + batteryWidth*90/100 + " 0 L" + batteryWidth*90/100 + " " + +batteryHeight + +2);
 		batteryBar.setAttribute('stroke-width', "2");
 		batteryBar.setAttribute('opacity', "0.25");
 		shiftedContentContainer.appendChild(batteryBar);
@@ -154,7 +148,7 @@ Module.register("MMM-Tesla2",{
 	
 		return;
 	},
-	
+
 	processDrivestateData: function(data) {
 		console.log('processDrivestateData');
 		console.log(data);
