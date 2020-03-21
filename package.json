@@ -1,12 +1,12 @@
 {
-  "name": "mmm-tesla",
+  "name": "mmm-tesla2",
   "version": "1.0.0",
   "description": "A prototype of a simple MagicMirror module for the Tesla",
   "main": "MMM-Tesla.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Jan Henrik Gundelsby",
+  "author": "Jan Henrik Gundelsby and Martin Burheim Tingstad",
   "license": "ISC",
   "devDependencies": {},
   "dependencies": {
