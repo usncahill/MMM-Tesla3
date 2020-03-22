@@ -51,8 +51,16 @@ Module.register("MMM-Tesla2",{
 		}
 
 		var textElement = document.createElement("div");
-		   textElement.innerHTML = '<b>Tesla</b><br/>' +
-		    this.charging_state + ' - ' + Math.floor(this.range) + ' km';
+		if(this.charging_state == "Charging") {
+			var prettyPrintedState = this.charging_state + ' ('
+			+ Math.floor(this.charge_minutes_remaining/60) + 'h '
+			+ Math.floor(this.charge_minutes_remaining%60) + 'm)';
+		}
+		else {
+			var prettyPrintedState = "Not charging";
+		}
+		textElement.innerHTML = '<b>' + this.vehicle_name + '</b><br/>' +
+		prettyPrintedState + ' - ' + Math.floor(this.range) + ' km';
 
 		wrapper.appendChild(textElement);
 
@@ -143,6 +151,7 @@ Module.register("MMM-Tesla2",{
 		this.battery_level = data.usable_battery_level;
 		this.charging_state = data.charging_state;
 		this.range = data.ideal_battery_range*1.609344;
+		this.charge_minutes_remaining = data.time_to_full_charge * 60;
 
 		generateSVG(this.battery_level);
 	
@@ -162,7 +171,16 @@ Module.register("MMM-Tesla2",{
 		return;
 	},
 
+	processVehicleData: function(data) {
+		if(!data.display_name) {
+			return;
+		}
+		this.vehicle_name = data.display_name;
+		return;
+	},
+
  	socketNotificationReceived: function(notification, payload) {
+		 console.log("socketNotificationReceived");
     		if (notification === "STARTED") {
 				this.updateDom();
 			}
@@ -175,25 +193,12 @@ Module.register("MMM-Tesla2",{
 				this.loaded = true;
 				this.processDrivestateData(JSON.parse(payload).response);
 				this.updateDom();
-    		}
+			}
+			else if (notification === "VEHICLE_DATA") {
+				this.loaded = true;
+				this.processVehicleData(JSON.parse(payload).response);
+				this.updateDom();
+			}
+			
 	},
-
-// 			<svg width="210pt" height="60pt" viewBox="0 0 210 60" version="1.1" xmlns="http://www.w3.org/2000/svg">
-//   <g id="#000000ff" name="background">
-//     <path fill="#000000" opacity="1.00" d="M0 0 L220 0 L220 70 L0 70" />
-//   </g>
-
-//   <g id="#1f6e43ff" transform="translate(5,5)">
-//     <rect width="170" height="50" rx="1" ry="1" style="fill:rgba(63,134,44,0.7);" />
-//     <rect width="200" height="50" rx="2" ry="2" style="fill:rgba(0,0,0,0);stroke-width:1.5;stroke:rgba(255,255,255, 0.25)" />
-
-//     <path stroke="#ffffff" stroke-width="1.5" opacity="0.25" d="M100 0 L100 50" />
-//     <path stroke="#ffffff" stroke-width="1.5" opacity="0.25" d="M120 0 L120 50" />
-//     <path stroke="#ffffff" stroke-width="1.5" opacity="0.25" d="M140 0 L140 50" />
-//     <path stroke="#ffffff" stroke-width="1.5" opacity="0.25" d="M160 0 L160 50" />
-//     <path stroke="#ffffff" stroke-width="1.5" opacity="0.25" d="M180 0 L180 50" />
-//   </g>
-// </svg>
-
 });
-
