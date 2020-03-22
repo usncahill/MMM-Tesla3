@@ -57,7 +57,7 @@ Module.register("MMM-Tesla2",{
 			+ Math.floor(this.charge_minutes_remaining%60) + 'm)';
 		}
 		else {
-			var prettyPrintedState = "Not charging";
+			var prettyPrintedState = this.charging_state;
 		}
 		textElement.innerHTML = '<b>' + this.vehicle_name + '</b><br/>' +
 		prettyPrintedState + ' - ' + Math.floor(this.range) + ' km';
@@ -181,24 +181,23 @@ Module.register("MMM-Tesla2",{
 
  	socketNotificationReceived: function(notification, payload) {
 		 console.log("socketNotificationReceived");
-    		if (notification === "STARTED") {
-				this.updateDom();
-			}
-			else if (notification === "CHARGE_DATA") {
-				this.loaded = true;
-				this.processChargeData(JSON.parse(payload).response);
-				this.updateDom();
-    		}
-			else if (notification === "DRIVESTATE_DATA") {
-				this.loaded = true;
-				this.processDrivestateData(JSON.parse(payload).response);
-				this.updateDom();
-			}
-			else if (notification === "VEHICLE_DATA") {
-				this.loaded = true;
-				this.processVehicleData(JSON.parse(payload).response);
-				this.updateDom();
-			}
-			
+		if (notification === "STARTED") {
+			this.updateDom();
+		}
+		else if (notification === "CHARGE_DATA") {
+			this.loaded = true;
+			this.processChargeData(JSON.parse(payload).response);
+			this.updateDom();
+		}
+		else if (notification === "DRIVESTATE_DATA") {
+			this.loaded = true;
+			this.processDrivestateData(JSON.parse(payload).response);
+			this.updateDom();
+		}
+		else if (notification === "VEHICLE_DATA") {
+			this.loaded = true;
+			this.processVehicleData(JSON.parse(payload).response);
+			this.updateDom();
+		}
 	},
 });
