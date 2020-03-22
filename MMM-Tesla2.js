@@ -10,8 +10,8 @@
 Module.register("MMM-Tesla2",{
 
 	defaults: {
-		refreshInterval: 1000 * 60 * 30, // refresh every half hour
-		updateInterval: 1000 * 3600, // update every hour
+		refreshInterval: 1000 * 60 * 5, // refresh every 5 minutes
+		updateInterval: 1000 * 60 * 5, // update every 5 minutes
 		timeFormat: config.timeFormat,
 		lang: config.language,
 
