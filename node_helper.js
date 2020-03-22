@@ -67,7 +67,6 @@ module.exports = NodeHelper.create({
 	},
 
 	getData: function() {
-		console.log("getData");
 		var self = this;
 		
 		const vehicleId = this.config.vehicle_id;
