@@ -91,7 +91,7 @@ module.exports = NodeHelper.create({
 			}, function (error, response, body) {
 				if (!error && response.statusCode == 200) {
 					self.drivestate_data = body;
-					self.sendSocketNotification("DRIVESTATE_DATA", body);					
+					self.sendSocketNotification("DRIVESTATE_DATA", body);
 				}
 			})
 		}
@@ -127,7 +127,12 @@ module.exports = NodeHelper.create({
 			getVehicleDate(accessToken);
 		}
 
-		setTimeout(function() { self.getData(); }, this.config.refreshInterval);
+		if(self.charge_data.charging_state === 'Charging') {
+			setTimeout(function() { self.getData(); }, 1000 * 60 * 5);
+		}
+		else {
+			setTimeout(function() { self.getData(); }, this.config.refreshInterval);
+		}
 	},
 
 	socketNotificationReceived: function(notification, payload) {

@@ -4,8 +4,6 @@ The `MMM-Tesla2` module is a <a href="https://github.com/MichMich/MagicMirror">M
 This is just an early prototype, supporting one vehicle only - displaying the battery state graphically, as well as the range in kms. It uses
 the unofficial Tesla JSON API from https://timdorr.docs.apiary.io
 
-![alt Preview](https://raw.githubusercontent.com/janhenrik/pics/master/tesla.png)
-
 ## Installing the module
 run `git clone https://github.com/martinburheimtingstad/MMM-Tesla2` from inside your `MagicMirror/modules` folder. Then run `npm install` to install dependencies.
 
