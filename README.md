@@ -1,5 +1,5 @@
 # Module: MMM-Tesla2 (early prototype)
-The `MMM-Tesla2` module is a <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a> addon. This module displays some of your <a href="https://www.tesla.com">Tesla's</a> data on your Mirror.
+The `MMM-Tesla2` module is a <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a> addon. This module displays some of your <a href="https://www.tesla.com">Tesla's</a> data on your Mirror. It is forked from <a href="https://github.com/janhenrik/MMM-Tesla/">MMM-Tesla</a> which was invaluable for the work on this module.
 
 This is just an early prototype, supporting one vehicle only - displaying the battery state graphically, as well as the range in kms. It uses
 the unofficial Tesla JSON API from https://timdorr.docs.apiary.io
