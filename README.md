@@ -38,21 +38,24 @@ The following properties can be configured:
 	<!-- why, markdown... -->
 	<thead>
 		<tr>
-			<th>Option</th>
-			<th width="100%">Description</th>
+			<th width="25%">Option</th>
+			<th width="25%">Description</th>
+			<th width="50%">Example value</th>
 		</tr>
 	<thead>
 	<tbody>
 		<tr>
 			<td><code>email</code></td>
-			<td>Your tesla.com email adress, matching the owner's login information for https://my.teslamotors.com/user/login. <br>
+			<td>Your tesla.com email adress, matching the owner's login information for https://my.teslamotors.com/user/login.</td>
+			<td> <br>
 				<br><b>Example:</b> <code>elon@tesla.com</code>
 				<br> This value is <b>REQUIRED</b>
 			</td>
 		</tr>
 		<tr>
 			<td><code>password</code></td>
-			<td>Your tesla.com password, matching the owner's login information for https://my.teslamotors.com/user/login.<br>
+			<td>Your tesla.com password, matching the owner's login information for https://my.teslamotors.com/user/login.</td>
+			<td><br>
 				<br><b>Example:</b> <code>password</code>
 				<br> This value is <b>REQUIRED</b>
 			</td>
