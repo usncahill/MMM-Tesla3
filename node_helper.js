@@ -28,7 +28,7 @@ module.exports = NodeHelper.create({
             // only the first module should run getVehicles
             if (!self.started) {
                 self.started = true;
-                self.getVehicles(vehicleIndex);
+                self.getVehicles(payload.vehicleIndex);
             }
         } else if (notification === 'DATA') {
             self.getData(payload.vehicleIndex);
@@ -183,8 +183,7 @@ module.exports = NodeHelper.create({
                 accessToken = JSON.parse(body);
                 callback(accessToken);
             } else {
-                if (self.config[vehicleIndex].showVerboseConsole)
-                    console.log('MMM-Tesla3: Error during access_token update: ' + body);
+                console.log('MMM-Tesla3: Error during access_token update: ' + body);
             }
         });
     }

@@ -9,7 +9,7 @@ Module.register("MMM-Tesla3", {
 
     getScripts: function () {
         return [
-            'scripts/load-file.js'
+            this.data.path + 'scripts/load-file.js'
         ];
     },
     getStyles: function () {
