@@ -1,152 +1,191 @@
 'use strict';
 
 /* Magic Mirror
- * Module: MMM-Tesla2
+ * Module: MMM-Tesla3
  *
  * MIT Licensed.
  */
 
 const NodeHelper = require('node_helper');
+var fs = require('fs');
 var request = require('request');
-var moment = require('moment');
 var accessToken = null;
-
-function getToken(config) {
-	try {
-		const token = getTokenInternal(config);
-		return token;
-    } catch (err) {
-		console.log(err);
-		return "abc";
-	}
-}
-
-async function getTokenInternal(config) {
-
-	// Set the configuration settings
-	const credentials = {
-		client: {
-			id: config.client_id,
-			secret: config.client_secret
-		},
-		auth: {
-			tokenHost: 'https://owner-api.teslamotors.com',
-			tokenPath: '/oauth/token'
-		  },
-		  http: {
-			headers: { 'User-Agent': 'MMM-Tesla2' }
-		}
-	};
-		
-	const oauth2 = require('simple-oauth2').create(credentials);
-
-	const tokenConfig = {
-		email: config.email,
-		password: config.password,
-		grant_type: 'password',
-		client_secret: config.client_secret,
-		client_id: config.client_id
-	};
-
-	try {
-		var tokenObject = await oauth2.ownerPassword.getToken(tokenConfig);
-		return tokenObject.access_token;
-	} catch (error) {
-		console.log('Access Token Error', error.message);
-	}
-}
 
 module.exports = NodeHelper.create({
 
-	start: function() {
-		this.started = false;
-		this.config = null;
-		this.drivestate_data = null;
-		this.charge_data = null;
-		this.vehicle_data = null;
-	},
+    start: function() {
+        this.started = false;
+        this.config = {};
+        this.vehicle_data = {};
+        this.vehicles = {};
+    },
 
-	getData: function() {
-		var self = this;
-		
-		const vehicleId = this.config.vehicle_id;
-		const baseUrl = 'https://owner-api.teslamotors.com/api/1/vehicles/' + vehicleId;
+    socketNotificationReceived: function(notification, payload) {
+        var self = this;
+        
+        if (notification === 'VEHICLE') {
+            self.config[payload.vehicleIndex] = payload;
+            // only the first module should run getVehicles
+            if (!self.started) {
+                self.started = true;
+                self.getVehicles(vehicleIndex);
+            }
+        } else if (notification === 'DATA') {
+            self.getData(payload.vehicleIndex);
+        }
+    },
 
-		function getChargeDate(token) {
-			request.get({
-				url: baseUrl + '/data_request/charge_state',
-				headers: { 'Authorization': "Bearer " + token, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla2' }
-			}, function (error, response, body) {
-				if (!error && response.statusCode == 200) {
-					self.charge_data = body;
-					self.sendSocketNotification("CHARGE_DATA", body);					
-				}
-			})
-		}
+    getVehicles: function(vehicleIndex) {
+        var self = this;
+        const baseUrl = 'https://owner-api.teslamotors.com/api/1/vehicles';
+        
+        if (accessToken === null) {
+            self.refreshToken(function(accessToken) {
+                getVehicleList(accessToken);
+            });
+        } else {
+            getVehicleList(accessToken);
+        }
 
-		function getDriveStateDate(token) {
-			request.get({
-				url: baseUrl + '/data_request/drive_state',
-				headers: { 'Authorization': "Bearer " + token, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla2' }
-			}, function (error, response, body) {
-				if (!error && response.statusCode == 200) {
-					self.drivestate_data = body;
-					self.sendSocketNotification("DRIVESTATE_DATA", body);
-				}
-			})
-		}
+        function getVehicleList(token) {
+            request.get({
+                url: baseUrl,
+                headers: { 'Authorization': 'Bearer ' + token.access_token, 
+                            'Content-type': 'application/json', 
+                            'User-Agent': 'MMM-Tesla3' }
+            }, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    for (let i = 0; i < JSON.parse(body).count; i++) {
+                        self.vehicles[i] = JSON.parse(body).response[i];
+                        self.sendSocketNotification('VEHICLE: [' + i + ']', self.vehicles[i]);
+                    }
+                    
+                    self.sendSocketNotification('READY', true);
+                } else {                    
+                    if (JSON.parse(body).error === 'invalid bearer token') {
+                        if (self.config[vehicleIndex].showVerboseConsole)
+                            console.log('MMM-Tesla3: access token got old; refreshing');
+                        self.refreshToken(function(newtoken) { getVehicleList(newtoken); });
+                    } else if (JSON.parse(body).includes('timeout')) {
+                        if (self.config[vehicleIndex].showVerboseConsole)
+                            console.log('MMM-Tesla3: timed out during vehicle list retrieval; trying again in 1 minute.');
+                        setTimeout(function() { getVehicleList(token); }, 1000 * 60);
+                    } else {
+                        if (self.config[vehicleIndex].showVerboseConsole)
+                            console.log('MMM-Tesla3: unhandled error during vehicle list retrieval\n'+body);
+                        return; //failed to update
+                    }
+                }
+            });
+        }
+    },
+    
+    getData: function(vehicleIndex) {
+        var self = this;
+        const baseUrl = 'https://owner-api.teslamotors.com/api/1/vehicles/' + self.vehicles[vehicleIndex].id;
+        
+        if (accessToken === null) {
+            this.refreshToken(function(accessToken) {
+                getVehicleData(accessToken);
+            });
+        } else {
+            getVehicleData(accessToken);
+        }
 
-		function getVehicleDate(token) {
-			request.get({
-				url: baseUrl,
-				headers: { 'Authorization': "Bearer " + token, 'Content-type': "application/json; charset=utf-8", 'User-Agent': 'MMM-Tesla2' }
-			}, function (error, response, body) {
-				if (!error && response.statusCode == 200) {
-					self.vehicle_data = body;
-					self.sendSocketNotification("VEHICLE_DATA", body);					
-				}
-			})
-		}
+        function getVehicleData(token) {
+            request.get({
+                url: baseUrl + '/vehicle_data',
+                headers: { 'Authorization': 'Bearer ' + token.access_token, 
+                            'Content-type': 'application/json', 
+                            'User-Agent': 'MMM-Tesla3' }
+            }, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                        self.vehicle_data[vehicleIndex] = JSON.parse(body).response;
+                        updateRefreshInterval(vehicleIndex);
+                        self.sendSocketNotification('DATA: [' + vehicleIndex + ']', self.vehicle_data[vehicleIndex]);
+                } else {
+                    if (JSON.parse(body).error.includes('vehicle unavailable')) {
+                        if (self.config[vehicleIndex].showVerboseConsole)
+                            console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake');
+                        wakeVehicle(token);
+                    } else if (JSON.parse(body).error === 'invalid bearer token') {
+                        if (self.config[vehicleIndex].showVerboseConsole)
+                            console.log('MMM-Tesla3: access token got old; refreshing');
+                        accessToken = null;
+                        self.getData(vehicleIndex);
+                    } else if (JSON.parse(body).error.includes('timeout')) {
+                        if (self.config[vehicleIndex].showVerboseConsole)
+                            console.log('MMM-Tesla3: timed out during data retrieval for [' + vehicleIndex + ']; trying again in 1 minute.');
+                        setTimeout(function() { self.getData(vehicleIndex); }, 1000 * 60);
+                    } else {
+                        if (self.config[vehicleIndex].showVerboseConsole)
+                            console.log('MMM-Tesla3: unhandled error during data retrieval\n'+body);
+                        return; //failed to update
+                    }
+                }
+            });
+        }
+        
+        function wakeVehicle(token) {
+            request.post({
+                url: baseUrl + '/wake_up',
+                headers: { 'Authorization': 'Bearer ' + token.access_token, 
+                            'Content-type': 'application/json', 
+                            'User-Agent': 'MMM-Tesla3' }
+            }, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    // send back waking response which contains some interim info
+                    self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response);
+                    setTimeout(function() { self.getData(vehicleIndex); }, 1000 * 60);
+                } else {
+                    if (self.config[vehicleIndex].showVerboseConsole)
+                        console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake\n'+body);
+                    return;
+                }
+            });
+        }
 
-		if (accessToken === null ) {
-			var tempToken = getToken(this.config);
-			var localToken = tempToken.then(function(accessToken){
-				return accessToken;
-			});
+        function updateRefreshInterval(vehicleIndex) {
+            if(self.vehicle_data[vehicleIndex].charge_state.charging_state === 'charging') {
+                setTimeout(function() { self.getData(vehicleIndex); }, 1000 * 60 * (self.config[vehicleIndex].refreshIntervalCharging || 5));
+            } else {
+                setTimeout(function() { self.getData(vehicleIndex); }, 1000 * 60 * (self.config[vehicleIndex].refreshInterval || 15));
+            }
+        }
+    },
 
-			localToken.then(function(token) {
-				accessToken = token;
-				getChargeDate(token);
-				getDriveStateDate(token);
-				getVehicleDate(token);
-			});
-		}
-		else {
-			getChargeDate(accessToken);
-			getDriveStateDate(accessToken);
-			getVehicleDate(accessToken);
-		}
-
-		if(self.charge_data.charging_state === 'Charging') {
-			setTimeout(function() { self.getData(); }, 1000 * 60 * 5);
-		}
-		else {
-			setTimeout(function() { self.getData(); }, this.config.refreshInterval);
-		}
-	},
-
-	socketNotificationReceived: function(notification, payload) {
-		console.log("socketNotificationReceived");
-		var self = this;
-		if (notification === 'CONFIG' && self.started == false) {
-			self.config = payload;
-			self.sendSocketNotification("STARTED", true);
-			self.getData();
-			self.started = true;
-		} else if (notification == 'CONFIG') {
-			self.sendSocketNotification("CHARGE_DATA", self.charge_data);
-			self.sendSocketNotification("DRIVESTATE_DATA", self.drivestate_data);
-			self.sendSocketNotification("VEHICLE_DATA", self.vehicle_data);
-		}
-	}
+    refreshToken: function(callback) {
+        var self = this;
+        
+        // original token.json need only contain [{refresh_token: "token characters"}]
+        accessToken = JSON.parse(fs.readFileSync(self.path + '/token.json'));
+        // at this point, accessToken.refresh_token is the only parameter of interest
+        
+        const credentials = {
+            grant_type: 'refresh_token',
+            refresh_token: accessToken.refresh_token,
+            client_id: 'ownerapi',
+            scope: 'openid email offline_access'
+        };
+        const baseUrl = 'https://auth.tesla.com';
+        
+        request.post({
+                url: baseUrl + '/oauth2/v3/token',
+                headers: { 'Content-type': 'application/json', 
+                            'User-Agent': 'MMM-Tesla3' },
+                body: JSON.stringify(credentials)
+        }, function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                // WARNING: 
+                // this will write to the disk at least every 8 hours when accessToken.access_token goes stale
+                // the token.json "refresh_token" will likely not work forever and need to be updated, hence the write
+                fs.writeFileSync(self.path + '/token.json', body);
+                accessToken = JSON.parse(body);
+                callback(accessToken);
+            } else {
+                if (self.config[vehicleIndex].showVerboseConsole)
+                    console.log('MMM-Tesla3: Error during access_token update: ' + body);
+            }
+        });
+    }
 });
