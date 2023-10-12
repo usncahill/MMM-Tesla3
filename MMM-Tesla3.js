@@ -20,17 +20,23 @@ Module.register("MMM-Tesla3", {
 
     // Default module config
     defaults: {
-        rangeDisplayLarge: "distance", //percent or distance
         vehicleIndex: 0,
+        vehicleName: null,
         showVehicleName: true,
+        rangeDisplayLarge: "distance", //percent or distance
         useHomeLink: true, // easy way of figuring out homeness
         homeLatitude: null, // at least 4 decimals ##.####; gmaps
         homeLongitude: null, // at least 4 decimals ##.####; gmaps
-        showBatteryReserve: true, // shows when battery cold
         showBatteryBar: true,
+        showBatteryBarIcon: true,
+        showBatteryReserve: true, // shows when battery cold
         showBatteryLevelColors: true,
         percentBatteryLevelLow: 15,
         percentBatteryLevelCritical: 5,
+        saturateModule: 1,
+        saturateCarImage: 1,
+        saturateIcons: 1,
+        saturateBatteryBar: 1,
         showLockedIcon: false,
         showUnLockedIcon: true,
         showPluggedIcon: true,
@@ -41,7 +47,6 @@ Module.register("MMM-Tesla3", {
         showAirConditioningIcon: true,
         showOffPeakIcon: true,
         showScheduledChargeIcon: true,
-        showBatteryReserveIcon: false,
         // showTemperature NOT INCLUDED IN "Initial Changes"
         refreshInterval: 15, //minutes
         refreshIntervalCharging: 5, //minutes
@@ -61,8 +66,8 @@ Module.register("MMM-Tesla3", {
         },
         homeRadius: 100, // meter
         earthRadius: 6371000, // meter; avg
-        showVerboseConsole: true,
         showDebug: false,
+        showVerboseConsole: true,
         showTable: false,
         showTableOdometer: true,
     },
@@ -95,7 +100,7 @@ Module.register("MMM-Tesla3", {
         const wrapper = document.createElement('div');
 
 		if (!this.vehicle) {
-			wrapper.innerHTML = 'Loading';
+			wrapper.innerHTML = "Loading";
 			return wrapper;
 		} else {
             if (this.vehicle.state === 'asleep' || this.vehicle.state === 'offline') {
@@ -128,9 +133,9 @@ Module.register("MMM-Tesla3", {
     },
 
     generateGraphicDom: function (wrapper, data) {
-        const stateIcons = [];
-        const warningIcons = [];
-        const state = data.state;
+        var stateIcons = [];
+        var warningIcons = [];
+        var state = data.state;
         
         // save states for top left icons
         (data.state === "asleep" || data.state === "suspended") 
@@ -190,11 +195,6 @@ Module.register("MMM-Tesla3", {
         (data.vehicle_state.tpms_soft_warning_fl || data.vehicle_state.tpms_soft_warning_fr || data.vehicle_state.tpms_soft_warning_rl || data.vehicle_state.tpms_soft_warning_rr) 
             ? warningIcons.push("tire-exclamation") 
             : null;
-
-        if (this.config.showDebug) {
-            var tempArr = ["lock","lock","lock","lock","lock","lock","lock","lock","lock","lock","lock","lock","lock"];stateIcons.push(...tempArr);
-            warningIcons.push(...tempArr);
-        }
         
         // size options
         // size of the icons + battery (above text)
@@ -210,6 +210,7 @@ Module.register("MMM-Tesla3", {
         // calculate scales
         var layBatScaleWidth = layBatWidth / 250;  // scale factor normalized to 250
         var layBatScaleHeight = layBatHeight / 75; // scale factor normalized to 75
+        var layScaleWidth = layWidth / 450;      // scale factor normalized to 203
         var layScaleHeight = layHeight / 203;      // scale factor normalized to 203
 
         const teslaModel = this.config.carImageOptions.model.toLowerCase() || "ms";
@@ -219,42 +220,65 @@ Module.register("MMM-Tesla3", {
         const teslaImageUrl = `https://static-assets.tesla.com/configurator/compositor?&model=${teslaModel}&view=${teslaView}&size=${teslaImageWidth}&options=${teslaOptions}&bkba_opt=1`;
         const imageOffset = this.config.carImageOptions.verticalOffset || 0;
         const imageOpacity = this.config.carImageOptions.imageOpacity || 0.2;
-        const path = this.data.path;
-        const renderedStateIcons = stateIcons.map((icon) => `<span class="stateicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
-        const renderedWarningIcons = warningIcons.map((icon) => `<span class="warningicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
         
-        const batteryUsable = data.charge_state.usable_battery_level;
-        const batteryReserve = (data.charge_state.battery_level - data.charge_state.usable_battery_level);
-        const batteryReserveVisible = (batteryReserve) > 1; // at <= 1% reserve the app and the car don't show it, so we won't either
-        const chargeLimitSOC = data.charge_state.charge_limit_soc;
-
-        var batteryOverlayIcon = (data.charge_state.charging_state === "charging")
+        const path = this.data.path;
+        var batteryUsable = data.charge_state.usable_battery_level;
+        var batteryReserve = (data.charge_state.battery_level - data.charge_state.usable_battery_level);
+        var batteryReserveVisible = (batteryReserve) > 1; // at <= 1% reserve the app and the car don't show it, so we won't either
+        var chargeLimitSOC = data.charge_state.charge_limit_soc;
+        var batteryOverlayIcon = (!this.config.showBatteryBarIcon) ? `` 
+            : (data.charge_state.charging_state === "charging")
             ? `<span class="batteryicon icon-bolt"><load-file replaceWith src="${path}/icons/bolt.svg"></load-file></span>`
             : (batteryReserveVisible && showBatteryReserveIcon)
-                ? `<span class="batteryicon icon-snowflake"><load-file replaceWith  src="${path}/icons/snowflake.svg"></load-file></span>` 
+                ? `<span class="batteryicon icon-snowflake"><load-file replaceWith src="${path}/icons/snowflake.svg"></load-file></span>` 
                 : ((data.charge_state.scheduled_charging_pending || data.charge_state.managed_charging_active) && this.config.showScheduledChargeIcon) 
-                    ? `<span class="batteryicon icon-clock-bolt"><load-file replaceWith  src="${path}/icons/clock-bolt.svg"></load-file></span>` 
+                    ? `<span class="batteryicon icon-clock-bolt"><load-file replaceWith src="${path}/icons/clock-bolt.svg"></load-file></span>` 
                     : ``;
 
-        if (this.config.showDebug) {
-            batteryOverlayIcon = `<span class="batteryicon icon-clock-bolt"><load-file replaceWith  src="${path}/icons/clock-bolt.svg"></load-file></span>`;
-        }
-
-        const vehicleName = data.vehicle_state.vehicle_name;
+        var vehicleName = this.config.vehicleName || data.vehicle_state.vehicle_name;
         const showVehicleName = this.config.showVehicleName;
-        const batteryBigNumber = this.config.rangeDisplayLarge === "percent" 
+        var batteryBigNumber = this.config.rangeDisplayLarge === "percent" 
             ? data.charge_state.usable_battery_level.toFixed(0) 
             : data.charge_state.battery_range.toFixed(0);
-        const batteryUnit = this.config.rangeDisplay === "percent" 
+        var batteryUnit = this.config.rangeDisplay === "percent" 
             ? "%" 
             : (data.gui_settings.gui_distance_units === "mi/hr" 
                 ? "mi" 
                 : "km");
-        const batteryLevelClass = (data.charge_state.usable_battery_level > this.config.percentBatteryLevelLow || !this.config.showBatteryLevelColors)
+        var batteryLevelClass = (data.charge_state.usable_battery_level > this.config.percentBatteryLevelLow || !this.config.showBatteryLevelColors)
             ? "battery-level-normal"
             : (data.charge_state.usable_battery_level > this.config.percentBatteryLevelCritical)
                 ? "battery-level-low"
                 : "battery-level-critical";
+        const saturateModule = this.config.saturateModule;
+        const saturateCarImage = this.config.saturateCarImage;
+        const saturateIcons = this.config.saturateIcons;
+        const saturateBattery = this.config.saturateBattery;
+        
+        // Debugging / Testing
+        if (this.config.showDebug) {
+            vehicleName = "01234567890123";
+            batteryOverlayIcon = `<span class="batteryicon icon-clock-bolt"><load-file replaceWith src="${path}/icons/clock-bolt.svg"></load-file></span>`;
+            batteryLevelClass = "battery-level-critical";
+            batteryUnit = "km"
+            batteryBigNumber = 222;
+            batteryUsable = 50;
+            batteryReserve = 25;
+            batteryReserveVisible = true; // at <= 1% reserve the app and the car don't show it, so we won't either
+            chargeLimitSOC = 95;
+            
+            stateIcons = [];
+            warningIcons = [];
+            var tempIcons = ["sleep","steering-wheel","car-garage","plug","clock-bolt","clock-dollar","device-computer-camera","air-conditioning","cloud-download","cloud-plus","wifi"];
+            stateIcons.push(...tempIcons);
+            
+            var tempIcons = ["plug-x","lock-open","window-up","car-door","tire-exclamation"];
+            warningIcons.push(...tempIcons);
+        }
+        
+        const renderedStateIcons = stateIcons.map((icon) => `<span class="stateicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
+        const renderedWarningIcons = warningIcons.map((icon) => `<span class="warningicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
+        
         
         let batteryBarHtml = '';
         if (this.config.showBatteryBar) {
@@ -265,7 +289,8 @@ Module.register("MMM-Tesla3", {
                             height: ${layBatHeight}px;
                             margin-top: ${layBatTopMargin}px;
                             border: 2px solid #aaa;
-                            border-radius: ${10 * layBatScaleHeight}px">
+                            border-radius: ${10 * layBatScaleHeight}px;
+                            filter: saturate(${saturateBattery});">
 
                     <!-- Plus pole -->
                     <div style="position: relative; 
@@ -300,11 +325,10 @@ Module.register("MMM-Tesla3", {
                                     height: ${layBatHeight - 8 - 2 - 2}px;
                                     opacity: 0.8;
                                     border-top-left-radius: ${2.5 * layBatScaleHeight}px;
-                                    border-bottom-left-radius: ${2.5 * layBatScaleHeight}px;
-                                    background-color: #64ff64"></div>
+                                    border-bottom-left-radius: ${2.5 * layBatScaleHeight}px;"></div>
 
                         <!-- Reserved charge rectangle -->
-                        <div style="position: relative; 
+                        <div class="battery-level-reserve" style="position: relative; 
                                     top: -${layBatHeight - 8 - 2 - 2}px; 
                                     left: ${Math.round(layBatScaleWidth * 2.38 * batteryUsable)}px; 
                                     z-index: 2;
@@ -313,8 +337,7 @@ Module.register("MMM-Tesla3", {
                                     height: ${layBatHeight - 8 - 2 - 2}px;
                                     opacity: 0.8;
                                     border-top-left-radius: 2.5px;
-                                    border-bottom-left-radius: 2.5px;
-                                    background-color: #6464ff"></div>
+                                    border-bottom-left-radius: 2.5px;"></div>
 
                         <!-- Charge limit marker -->
                         <div style="position: relative; 
@@ -329,11 +352,12 @@ Module.register("MMM-Tesla3", {
                         <div class="medium"
                              style="z-index: 5;
                                     position: relative; 
-                                    top: -${(layBatHeight - 8 - 2 - 2) * 3}px; 
+                                    top: -${(layBatHeight - 8 - 2 - 2) * 2}px; 
                                     left: 0; 
                                     height: ${(layBatHeight) - 8 - 2 - 2}px;
                                     text-align: center; 
                                     display: flex;
+                                    align-items: center;
                                     justify-content: center;">
                             ${batteryOverlayIcon}
                         </div>
@@ -344,7 +368,7 @@ Module.register("MMM-Tesla3", {
         }
 
         wrapper.innerHTML = `
-            <div style="width: ${layWidth}px; height: ${layHeight}px;">
+            <div style="width: ${layWidth}px; height: ${layHeight}px; filter: saturate(${saturateModule});">
                 <div style="z-index: 1; 
                             position: relative; top: 0px; left: 0px; 
                             margin-top: ${topOffset}px;
@@ -353,14 +377,15 @@ Module.register("MMM-Tesla3", {
                             height: ${layHeight}px; 
                             opacity: ${imageOpacity}; 
                             background-image: url('${teslaImageUrl}'); 
-                            background-size: ${layWidth}px;
-                            background-position: 0px ${imageOffset}px;"></div>
+                            background-size: ${layWidth * (teslaModel == 'mx' ? 1.5 : 1)}px;
+                            background-position: -${layWidth * (teslaModel == 'mx' ? 0.25 : 0)}px; ${imageOffset}px;
+                            filter: saturate(${saturateCarImage});"></div>
                             
                 <div style="z-index: 2; 
                             position: relative;
                             margin-top: ${topOffset}px;
                             top: 0px; 
-                            left: 0px; ">
+                            left: 0px;">
                     <!-- Vehicle Name -->
                     <div style="margin-left: auto; 
                                 text-align: center; 
@@ -371,35 +396,39 @@ Module.register("MMM-Tesla3", {
                     </div>
 
                     <!-- Percentage/range -->
-                    <div style="margin-left: auto; 
+                    <div style="margin-left: ${layWidth / 3}px;
                                 text-align: center; 
-                                width: ${layWidth}px; 
+                                width: ${layWidth / 3}px;
                                 height: 70px">
                         <span class="bright large light">${batteryBigNumber}</span><span class="normal medium">${batteryUnit}</span>
                     </div>
 
                     <!-- State icons -->
-                    <div style="float: left; 
-                                margin-top: -${60 + 20 * layScaleHeight}px; 
-                                margin-left: ${((layWidth - layBatWidth) / 6)}px;
-                                width: ${((layWidth - layBatWidth) / 1.5)}px; 
-                                text-align: left; 
+                    <div style="float: left;
+                                margin-top: -${60 + 30 * layScaleWidth}px;
+                                margin-left: ${10 * layScaleWidth}px;
+                                width: ${(layWidth / 3) - 20 * layScaleWidth}px;
+                                text-align: right;
                                 display: flex;
                                 flex-wrap: wrap;
-                                flex-direction: row; ${state == "offline" ? 'opacity: 0.3;' : ''}" 
+                                flex-direction: row;
+                                justify-content: flex-start;
+                                filter: saturate(${saturateIcons}); ${state == "offline" ? 'opacity: 0.3;' : ''}" 
                              class="small">
                         ${renderedStateIcons.join(" ")}
                     </div>
 
                     <!-- Warning icons -->
-                    <div style="float: right; 
-                                margin-top: -${60 + 20 * layScaleHeight}px; 
-                                margin-right: ${((layWidth - layBatWidth) / 6)}px;
-                                width: ${((layWidth - layBatWidth) / 1.5)}px; 
-                                text-align: right;
+                    <div style="float: right;
+                                margin-top: -${60 + 30 * layScaleWidth}px;
+                                margin-right: ${10 * layScaleWidth}px;
+                                width: ${(layWidth / 3) - 20 * layScaleWidth}px;
+                                text-align: left;
                                 display: flex;
                                 flex-wrap: wrap;
-                                flex-direction: row;" 
+                                flex-direction: row;
+                                justify-content: flex-end;
+                                filter: saturate(${saturateIcons});" 
                              class="small">
                         ${renderedWarningIcons.join(" ")}
                     </div>

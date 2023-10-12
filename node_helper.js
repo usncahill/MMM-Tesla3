@@ -62,7 +62,15 @@ module.exports = NodeHelper.create({
                     
                     self.sendSocketNotification('READY', true);
                 } else {                    
-                    if (JSON.parse(body).error === 'invalid bearer token') {
+                    if (!body) {
+                        if (self.config[vehicleIndex].showVerboseConsole) {
+                            if (error.includes('ETIMEDOUT') || error.includes('ESOCKETTIMEDOUT')) {
+                                console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection.\nbody:'+body+'\nerror:'+error);
+                            } else {
+                                console.log('MMM-Tesla3: unhandled error during data retrieval\nbody:'+body+'\nerror:'+error);
+                            }
+                        }
+                    } else if (JSON.parse(body).error === 'invalid bearer token') {
                         if (self.config[vehicleIndex].showVerboseConsole)
                             console.log('MMM-Tesla3: access token got old; refreshing');
                         self.refreshToken(function(newtoken) { getVehicleList(newtoken); });
@@ -104,7 +112,15 @@ module.exports = NodeHelper.create({
                         updateRefreshInterval(vehicleIndex);
                         self.sendSocketNotification('DATA: [' + vehicleIndex + ']', self.vehicle_data[vehicleIndex]);
                 } else {
-                    if (JSON.parse(body).error.includes('vehicle unavailable')) {
+                    if (!body) {
+                        if (self.config[vehicleIndex].showVerboseConsole) {
+                            if (error.includes('ETIMEDOUT') || error.includes('ESOCKETTIMEDOUT')) {
+                                console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection.\nbody:'+body+'\nerror:'+error);
+                            } else {
+                                console.log('MMM-Tesla3: unhandled error during data retrieval\nbody:'+body+'\nerror:'+error);
+                            }
+                        }
+                    } else if (JSON.parse(body).error.includes('vehicle unavailable')) {
                         if (self.config[vehicleIndex].showVerboseConsole)
                             console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake');
                         wakeVehicle(token);
@@ -119,7 +135,7 @@ module.exports = NodeHelper.create({
                         setTimeout(function() { self.getData(vehicleIndex); }, 1000 * 60);
                     } else {
                         if (self.config[vehicleIndex].showVerboseConsole)
-                            console.log('MMM-Tesla3: unhandled error during data retrieval\n'+body);
+                            console.log('MMM-Tesla3: unhandled error during data retrieval\nbody:'+body+'\nerror:'+error);
                         return; //failed to update
                     }
                 }
@@ -183,7 +199,7 @@ module.exports = NodeHelper.create({
                 accessToken = JSON.parse(body);
                 callback(accessToken);
             } else {
-                console.log('MMM-Tesla3: Error during access_token update: ' + body);
+                console.log('MMM-Tesla3: Error during access_token update:\nbody:'+body+'\nerror:'+error);
             }
         });
     }

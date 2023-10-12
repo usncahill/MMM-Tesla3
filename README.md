@@ -29,22 +29,27 @@ modules: [
 ````
 
 ## Configuration options
-The following properties can be configured:
+The following properties can be configured. Note, don't write the indicated units in your config.
 
 | Option                        | Default/Units | Description                                                                                               |
 | :-:                           | :-            | :-                                                                                                        |
 |`vehicleIndex`                 | `0`           | zero-based (0,1,2...) position of the car in your list of cars in Tesla's database.<br>when you get your `refresh_token` from [tesla-info.com](https://tesla-info.com/tesla-token.php), you can see the list there or use trial and error                            |
+|`vehicleName`                  | `null`        | enter a value to override the name saved in your car / Tesla.com                                          |
 |`showVehicleName`              | `true`        | shows vehicle name at top of module                                                                       |
 |`rangeDisplayLarge`            | `distance`    | options: `distance`,`percent`<br>shows the large vehicle range value using the units chosen
 |`useHomeLink`                  | `true`        | `true` uses the car's proximity to Homelink geomarkers in the Tesla database to determine homeness, which overrides whatever the lat/long calculation determines                                                                                                      |
-|`homeLatitude`                 | `null` degrees| enter latitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates                                                                                                                                         |
-|`homeLongitude`                | `null` degrees| enter longitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates                                                                                                                                         |
-|`homeLongitude`                | `null` degrees| shows vehicle name at top of module                                                                       |
+|`homeLatitude`                 | `null` deg.   | enter latitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates                                                                                                                                         |
+|`homeLongitude`                | `null` deg.   | enter longitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates                                                                                                                                         |
+|`showBatteryBar`               | `true`        | `true` to show a battery-shaped bar below the charge level / range indicator                              |
+|`showBatteryBarIcon`           | `true`        | `true` to show the battery bar icon: bolt=charging, clock-bolt=scheduled charge, snowflake=battery cold   |
 |`showBatteryReserve`           | `true`        | shows the portion of lost battery range/level as blue on battery bar                                      |
-|`showBatteryBar`               | `true`        | `false` to hide battery bar                                                                               |
 |`showBatteryLevelColors`       | `true`        | `false` to turn of the battery level coloring in one line                                                 |
 |`percentBatteryLevelLow`       | `15` %        | battery bar color set to yellow below this value; `0` to disable                                          |
 |`percentBatteryLevelCritical`  | `5` %         | battery bar color set to red below this value; `0` to disable                                             |
+|`saturateModule`               | `1`           | range: `0 - 2`, set to `0` to remove all color from module (grayscale)                                    |
+|`saturateCarImage`             | `1`           | range: `0 - 2`, set to `0` to remove all color from your Tesla.com car image (grayscale)                  |
+|`saturateIcons`                | `1`           | range: `0 - 2`, set to `0` to remove all color from icons (grayscale), mostly noticable on warnings       |
+|`saturateBatteryBar`           | `1`           | range: `0 - 2`, set to `0` to remove all color from battery bar (grayscale); module will still apply darkness of other color settings, e.g. Battery Level Critical will still be darker than Battery Level Normal                                                            |
 |`showLockedIcon`               | `false`       | `true` shows vehicle lock status as state icon, (lock)                                                    |
 |`showUnLockedIcon`             | `true`        | `true` shows vehicle unlocked status as _warning_ icon, (unlock)                                          |
 |`showPluggedIcon`              | `true`        | `true` shows vehicle plug status as state icon, (plug)                                                    |
@@ -55,15 +60,14 @@ The following properties can be configured:
 |`showAirConditioningIcon`      | `true`        | `true` shows air conditioning status as state icon, (air conditioner)                                     |
 |`showOffPeakIcon`              | `true`        | `true` shows off peak charging option status as state icon, (clock with dollar)                           |
 |`showScheduledChargeIcon`      | `true`        | `true` shows scheduled charger option status as state icon, (clock with bolt)                             |
-|`showBatteryReserveIcon`       | `false`       | `true` shows cold icon when battery is cold as battery bar icon, (snowflake)                              |
 |`refreshInterval`              | `5` minutes   | e.g. `20` would query the Tesla server every 20 minutes                                                   |
 |`refreshIntervalCharging`      | `15` minutes  | e.g. `20` would query the Tesla server every 20 minutes while charging                                    |
 |**`sizeOptions`**              | n/a           | must be formatted like a sublist, e.g. `sizeOptions: {<br>width: 400, <br>height: 203, <br>batteryWidth: 250, <br>batteryHeight: 75,<br>topOffset: 40<br>}<br>weird battery or overlapping parts means you likely picked bad numbers                                      |
-|   `width`                     | `400` pixels  | module width, scalars based on default                                                                    |
-|   `height`                    | `203` pixels  | module height, scalars based on default                                                                   |
-|   `batteryWidth`              | `250` pixels  | battery bar width, scalars based on default                                                               |
-|   `batteryHeight`             | `75` pixels   | battery bar height, scalars based on default                                                              |
-|   `topOffset   `              | `40` pixels   | module top spacing from module above                                                                      |
+|   `width`                     | `400` pixels  | module width, module scales based on default                                                              |
+|   `height`                    | `203` pixels  | module height, module scales based on default                                                             |
+|   `batteryWidth`              | `250` pixels  | battery bar width, module scales based on default                                                         |
+|   `batteryHeight`             | `75` pixels   | battery bar height, module scales based on default                                                        |
+|   `topOffset`                 | `40` pixels   | module top spacing from module above                                                                      |
 |**`carImageOptions`**          | n/a           | must be formatted like a sublist, e.g. `carImageOptions: {<br>model: "MS", <br>view: "STUD_3QTR", <br>options: "WT19", <br>verticalOffset: 0,<br>imageOpacity: 0.2<br>}<br>no picture means you likely picked mis-matched options                                          |
 |   `model`                     | `MS`          | options: `MS`, `MX`, `MY`, `M3`, `CT`(?)                                                                  |
 |   `view`                      | `STUD_3QTR`   | options: STUD_3QTR,STUD_SEAT,STUD_SIDE,STUD_REAR,STUD_WHEEL                                               |
