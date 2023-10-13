@@ -1,0 +1,47 @@
+.stateicon {
+  color: #d4d4ff; /* very light blue */
+  padding-right: 5%;
+  width: 20%;
+}
+
+.warningicon {
+  color: #f49494; /* light red */
+  padding-left: 5%;
+  width: 20%;
+}
+
+.battery-level-normal {
+    background-color: #32ff32; /* full green */
+}
+
+.battery-level-low {
+    background-color: #ffff32; /* full yellow */
+}
+
+.battery-level-critical {
+    background-color: #ff3232; /* full red */
+}
+
+.battery-level-reserve {
+    background-color: #6464ff; /* full blue */
+}
+
+.batteryicon {
+    height: 80%;
+    width: auto;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+}
+
+.batteryicon.icon-snowflake {
+    color: #949494; /* light gray */
+}
+
+.batteryicon.icon-bolt {
+    color: #fff464; /* light yellow */
+}
+
+.batteryicon.icon-clock-bolt {
+    color: #949464; /* darkish yellow */
+}
