@@ -23,7 +23,7 @@ Module.register("MMM-Tesla3", {
         vehicleIndex: 0,
         vehicleName: null,
         showVehicleName: true,
-        rangeDisplayLarge: "distance", //percent or distance
+        rangeDisplayType: "distance", //percent or distance
         useHomeLink: true, // easy way of figuring out homeness
         homeLatitude: null, // at least 4 decimals ##.####; gmaps
         homeLongitude: null, // at least 4 decimals ##.####; gmaps
@@ -37,6 +37,8 @@ Module.register("MMM-Tesla3", {
         saturateCarImage: 1,
         saturateIcons: 1,
         saturateBatteryBar: 1,
+        showStatusIcons: true,
+        showWarningIcons: true,
         showLockedIcon: false,
         showUnLockedIcon: true,
         showPluggedIcon: true,
@@ -47,6 +49,7 @@ Module.register("MMM-Tesla3", {
         showAirConditioningIcon: true,
         showOffPeakIcon: true,
         showScheduledChargeIcon: true,
+        showConnectedIcon: true,
         // showTemperature NOT INCLUDED IN "Initial Changes"
         refreshInterval: 15, //minutes
         refreshIntervalCharging: 5, //minutes
@@ -173,7 +176,11 @@ Module.register("MMM-Tesla3", {
                 ? stateIcons.push("cloud-plus") 
                 : null;
         
-        (data.state === "offline") ? warningIcons.push("wifi-off") : stateIcons.push("wifi");
+        (data.state === "offline") 
+            ? warningIcons.push("wifi-off") 
+            : (this.config.showConnectedIcon)
+                ? stateIcons.push("wifi")
+                : null;
         
         // save warning related states for top right icons
         (data.vehicle_state.locked) 
@@ -237,10 +244,10 @@ Module.register("MMM-Tesla3", {
 
         var vehicleName = this.config.vehicleName || data.vehicle_state.vehicle_name;
         const showVehicleName = this.config.showVehicleName;
-        var batteryBigNumber = this.config.rangeDisplayLarge === "percent" 
+        var batteryBigNumber = this.config.rangeDisplayType === "percent" 
             ? data.charge_state.usable_battery_level.toFixed(0) 
             : data.charge_state.battery_range.toFixed(0);
-        var batteryUnit = this.config.rangeDisplay === "percent" 
+        var batteryUnit = this.config.rangeDisplayType === "percent" 
             ? "%" 
             : (data.gui_settings.gui_distance_units === "mi/hr" 
                 ? "mi" 
@@ -253,7 +260,7 @@ Module.register("MMM-Tesla3", {
         const saturateModule = this.config.saturateModule;
         const saturateCarImage = this.config.saturateCarImage;
         const saturateIcons = this.config.saturateIcons;
-        const saturateBattery = this.config.saturateBattery;
+        const saturateBatteryBar = this.config.saturateBatteryBar;
         
         // Debugging / Testing
         if (this.config.showDebug) {
@@ -276,6 +283,8 @@ Module.register("MMM-Tesla3", {
             warningIcons.push(...tempIcons);
         }
         
+        const showStatusIcons = this.config.showStatusIcons;
+        const showWarningIcons = this.config.showWarningIcons;
         const renderedStateIcons = stateIcons.map((icon) => `<span class="stateicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
         const renderedWarningIcons = warningIcons.map((icon) => `<span class="warningicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
         
@@ -290,7 +299,7 @@ Module.register("MMM-Tesla3", {
                             margin-top: ${layBatTopMargin}px;
                             border: 2px solid #aaa;
                             border-radius: ${10 * layBatScaleHeight}px;
-                            filter: saturate(${saturateBattery});">
+                            filter: saturate(${saturateBatteryBar});">
 
                     <!-- Plus pole -->
                     <div style="position: relative; 
@@ -352,10 +361,10 @@ Module.register("MMM-Tesla3", {
                         <div class="medium"
                              style="z-index: 5;
                                     position: relative; 
-                                    top: -${(layBatHeight - 8 - 2 - 2) * 2}px; 
+                                    top: -${(layBatHeight - 8 - 2 - 2) * 3}px; 
                                     left: 0; 
                                     height: ${(layBatHeight) - 8 - 2 - 2}px;
-                                    text-align: center; 
+                                    text-align: center;
                                     display: flex;
                                     align-items: center;
                                     justify-content: center;">
@@ -413,7 +422,9 @@ Module.register("MMM-Tesla3", {
                                 flex-wrap: wrap;
                                 flex-direction: row;
                                 justify-content: flex-start;
-                                filter: saturate(${saturateIcons}); ${state == "offline" ? 'opacity: 0.3;' : ''}" 
+                                filter: saturate(${saturateIcons}); 
+                                ${state == "offline" ? 'opacity: 0.3;' : ''};
+                                ${!showStatusIcons ? "visibility: hidden" : ""};" 
                              class="small">
                         ${renderedStateIcons.join(" ")}
                     </div>
@@ -428,7 +439,8 @@ Module.register("MMM-Tesla3", {
                                 flex-wrap: wrap;
                                 flex-direction: row;
                                 justify-content: flex-end;
-                                filter: saturate(${saturateIcons});" 
+                                filter: saturate(${saturateIcons});
+                                ${!showWarningIcons ? "visibility: hidden" : ""};" 
                              class="small">
                         ${renderedWarningIcons.join(" ")}
                     </div>
