@@ -1,6 +1,6 @@
 # Module: MMM-Tesla3
-The `MMM-Tesla3` module is a <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a> addon. This module displays some of your <a href="https://www.tesla.com">Tesla's</a> data on your Mirror. It is forked from <a href="https://github.com/martinburheimtingstad/MMM-Tesla2">MMM-Tesla2</a> and the GUI is a modification of <a href="https://github.com/denverquane/MMM-Teslamate">MMM-TeslaMate</a>.
-This is intended to be a current, state-of-the-API Tesla vehicle module, supporting multiple vehicles, displaying many configurable parameters.
+The `MMM-Tesla3` module is a <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a> addon. This module displays some of your <a href="https://www.tesla.com">Tesla's</a> data on your Mirror. It is forked from <a href="https://github.com/martinburheimtingstad/MMM-Tesla2">MMM-Tesla2</a> and the GUI is a modification of <a href="https://github.com/denverquane/MMM-Teslamate">MMM-TeslaMate</a>. Icons are modifications from [Tabler icon set](https://icon-sets.iconify.design/tabler/). 
+This is intended to be a current, state-of-the-API Tesla vehicle module, supporting multiple vehicles, displaying many configurable parameters, while avoiding use a database.
 
 
 ## Installing the module
@@ -37,7 +37,7 @@ The following properties can be configured. Note, don't write the indicated unit
 
 | Option                        | Default/Units | Description                                                                                               |
 | :-:                           | :-:           | :-                                                                                                        |
-|`vehicleIndex`                 | `0`           | zero-based (0,1,2...) position of the car in your list of cars in Tesla's database.<br>when you get your `refresh_token` from [tesla-info.com](https://tesla-info.com/tesla-token.php), you can see the list there<br>required for multicar to work                  |
+|`vehicleIndex`                 | `0`           | zero-based (0,1,2...) position of the car in your list of cars in Tesla's database.<br>when you get your `refresh_token` from [tesla-info.com](https://tesla-info.com/tesla-token.php), you can see the list there<br>**required for multicar to work**              |
 |`vehicleName`                  | `null`        | enter a value to override the name saved in your car / Tesla.com                                          |
 |`showVehicleName`              | `true`        | shows vehicle name at top of module                                                                       |
 |`rangeDisplayType`             | `distance`    | options: `distance`,`percent`<br>sets the large vehicle range value using the type chosen; range units come from the car's distance GUI settings retrieved from Tesla.com                 |
@@ -69,15 +69,15 @@ The following properties can be configured. Note, don't write the indicated unit
 |`showConnectedIcon`            | `true`        | `true` shows whether the car is connected to Tesla.com option status as state icon, (wifi)                |
 |`refreshInterval`              | `5` minutes   | e.g. `20` would query the Tesla server every 20 minutes                                                   |
 |`refreshIntervalCharging`      | `15` minutes  | e.g. `20` would query the Tesla server every 20 minutes while charging                                    |
-|**`sizeOptions`**              | n/a           | must be formatted like a sublist, e.g. `sizeOptions: {<br>width: 400, <br>height: 203, <br>batteryWidth: 250, <br>batteryHeight: 75,<br>topOffset: 40<br>}<br>weird battery or overlapping parts means you likely picked bad numbers                                      |
+|**`sizeOptions`**              | n/a           | must be formatted like a sublist, e.g. <br>`sizeOptions: {`<br>`  width: 400,`<br>`  height: 203,`<br>`  batteryWidth: 250,`<br>`  batteryHeight: 75,`<br>`  topOffset: 40`<br>`},`<br>weird battery or overlapping parts means you likely picked bad numbers                                      |
 |   `width`                     | `400` pixels  | module width, module scales based on default                                                              |
 |   `height`                    | `203` pixels  | module height, module scales based on default                                                             |
 |   `batteryWidth`              | `250` pixels  | battery bar width, module scales based on default                                                         |
 |   `batteryHeight`             | `75` pixels   | battery bar height, module scales based on default                                                        |
 |   `topOffset`                 | `40` pixels   | module top spacing from module above                                                                      |
-|**`carImageOptions`**          | n/a           | must be formatted like a sublist, e.g. `carImageOptions: {<br>model: "MS", <br>view: "STUD_3QTR", <br>options: "WT19", <br>verticalOffset: 0,<br>imageOpacity: 0.2<br>}<br>no picture means you likely picked mis-matched options                                          |
+|**`carImageOptions`**          | n/a           | must be formatted like a sublist, e.g. <br>`carImageOptions: {`<br>`  model: "MS",`<br>`  view: "STUD_3QTR",`<br>`  options: "WT19",`<br>`  verticalOffset: 0,`<br>`  imageOpacity: 0.2`<br>`},`<br>no picture means you likely picked mis-matched options<br>check [here](https://tesla-info.com/tesla-option-codes.php) for help setting up codes; go [here](https://static-assets.tesla.com/configurator/compositor?model=&view=&options=&bkba_opt=1) to test options                                          |
 |   `model`                     | `MS`          | options: `MS`, `MX`, `MY`, `M3`, `CT`(?)                                                                  |
-|   `view`                      | `STUD_3QTR`   | options: STUD_3QTR,STUD_SEAT,STUD_SIDE,STUD_REAR,STUD_WHEEL                                               |
+|   `view`                      | `STUD_3QTR`   | options: `STUD_3QTR`, `STUD_SEAT`, `STUD_SIDE`, `STUD_REAR`, `STUD_WHEEL`<br>each requires specific `options`; recommend testing here                                               |
 |   `options`                   | `DV4W,INBFP,MTS08,PPMR,WT19` | defaults make a red Model S. See [option codes](https://tesla-api.timdorr.com/vehicle/optioncodes) for more options.                                                                                                                                           |
 |   `verticalOffset`            | `0` pixels    |                                                                                                           |
 |   `imageOpacity`              | `0.2`         | range: `0.0 - 1.0` fractional opacity                                                                     |
@@ -87,6 +87,6 @@ The following properties can be configured. Note, don't write the indicated unit
 |`showDebug`                    | `false`       | `true` turns on a bunch of troubleshooting items, crazy icons, etc.                                       |
 |`showVerboseConsole`           | `true`        | 'false' turns off the MM console logs                                                                     |
 |`showTable`                    | `false`       | `true` would enable untested legacy MMM-TeslaMate table feature                                           |
-|`showTableOdometer`            | `true`        | Shows odometer on table                                                                                   |
+|`showTableOdometer`            | `true`        | Shows odometer on table  
 
 * Note: Warning icons for low tire pressure (squish tire), open doors (car door) and windows (poorly svg'd car window with up arrow) are currently not configurable.
