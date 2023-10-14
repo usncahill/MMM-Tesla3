@@ -150,7 +150,7 @@ Module.register("MMM-Tesla3", {
         ((this.config.useHomeLink && data.vehicle_state.homelink_nearby || this.isHome) && this.config.showHomeIcon)
             ? stateIcons.push("car-garage") : null;
         
-        (data.charge_state.charge_port_latch === "Engaged") 
+        (data.charge_state.charging_state !== "Disconnected") 
             ? ((this.config.showPluggedIcon) 
                 ? stateIcons.push("plug") 
                 : null )
@@ -276,7 +276,7 @@ Module.register("MMM-Tesla3", {
             
             stateIcons = [];
             warningIcons = [];
-            var tempIcons = ["sleep","steering-wheel","car-garage","plug","clock-bolt","clock-dollar","device-computer-camera","air-conditioning","cloud-download","cloud-plus","wifi"];
+            var tempIcons = ["sleep","steering-wheel","car-garage","lock","plug","clock-bolt","clock-dollar","device-computer-camera","air-conditioning","cloud-download","cloud-plus","wifi"];
             stateIcons.push(...tempIcons);
             
             var tempIcons = ["plug-x","lock-open","window-up","car-door","tire-exclamation"];
