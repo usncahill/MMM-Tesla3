@@ -199,7 +199,7 @@ module.exports = NodeHelper.create({
                 accessToken = JSON.parse(body);
                 callback(accessToken);
             } else {
-                if (body.includes("invalid_request") {
+                if (body.includes("invalid_request")) {
                     console.log('MMM-Tesla3: Fatal error during access_token request. Ensure a valid refresh_token has been pasted into token.json and that the file is formatted in valid JSON (i.e. {"refresh_token":"your refresh token here, e.g. ey...."} and restart.');
                 } else {
                     console.log('MMM-Tesla3: Fatal error during access_token update:\nbody:'+body+'\nerror:'+error);
