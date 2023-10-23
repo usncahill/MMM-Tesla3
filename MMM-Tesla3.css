@@ -10,6 +10,12 @@
   width: 20%;
 }
 
+.icon-santa {
+  color: #94f494;
+  padding-left: 5%;
+  width: 45%;
+}
+
 .battery-level-normal {
     background-color: #32ff32; /* full green */
 }
@@ -24,6 +30,12 @@
 
 .battery-level-reserve {
     background-color: #6464ff; /* full blue */
+}
+
+.batterytext {
+    font-family: monospace, sans-serif;
+    font-size: 0.5em;
+    font-weight: 1000;
 }
 
 .batteryicon {
