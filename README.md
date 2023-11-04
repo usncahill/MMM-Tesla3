@@ -1,6 +1,6 @@
 # Module: MMM-Tesla3
 The `MMM-Tesla3` module is a <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a> addon. This module displays some of your <a href="https://www.tesla.com">Tesla's</a> data on your Mirror. It is forked from <a href="https://github.com/martinburheimtingstad/MMM-Tesla2">MMM-Tesla2</a> and the GUI is a modification of <a href="https://github.com/denverquane/MMM-Teslamate">MMM-TeslaMate</a>. Icons are modifications from [Tabler icon set](https://icon-sets.iconify.design/tabler/). 
-This is intended to be a current, state-of-the-API Tesla vehicle module, supporting multiple vehicles, displaying many configurable parameters, while avoiding use a database.
+This is intended to be a current, state-of-the-API Tesla vehicle module, supporting multiple vehicles, displaying many configurable parameters, while avoiding use of a database.
 
 
 ## Installing the module
@@ -50,8 +50,8 @@ The following properties can be configured. Note, don't write the indicated unit
 |`homeLatitude`                 | `null` deg    | enter latitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates
 |`homeLongitude`                | `null` deg    | enter longitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates
 |`showBatteryBar`               | `true`        | `true` to show a battery-shaped bar below the charge level / range indicator
-|`showBatteryBarIcon`           | `true`        | `true` to show the battery bar icon: bolt=charging, clock-bolt=scheduled charge, snowflake=battery cold
-|`showBatteryBarTime`           | `true`        | `true` to show the : bolt=charging, clock >\|=scheduled departby, clock \|>=scheduled startat, snowflake=battery cold
+|`showBatteryBarIcon`           | `true`        | `true` to show the battery bar icon: bolt=charging, clock >\|=scheduled departby, clock \|>=scheduled startat, snowflake=battery cold
+|`showBatteryBarTime`           | `true`        | `true` to show the time associated with the active scheduled charging option DepartBy or StartAt on the battery bar
 |`showBatteryReserve`           | `true`        | shows the portion of lost battery range/level as blue on battery bar
 |`showBatteryLevelColors`       | `true`        | `false` to turn of the battery level coloring in one line
 |`percentBatteryLevelLow`       | `15` %        | battery bar color set to yellow below this value; `0` to disable
