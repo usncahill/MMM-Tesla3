@@ -22,7 +22,7 @@ module.exports = NodeHelper.create({
         this.vehicles = {};     // saves each vehicle in Tesla API vehicle list
         this.lastUpdates = {};  // saves checkUpdate related info: avoiding vamp drain by letting car sleep
         
-        setInterval(() => {this.checkUpdates();}, 10000);
+        setInterval(() => {this.checkUpdates();}, 60000);
     },
 
     socketNotificationReceived: function(notification, payload) {
@@ -31,8 +31,8 @@ module.exports = NodeHelper.create({
         if (notification === 'VEHICLE') {
             self.config[payload.vehicleIndex] = payload;
             self.lastUpdates[payload.vehicleIndex] = {
-                wake: Date.now() - payload.wakePeriod * 60000,
-                refresh: Date.now() - payload.refreshPeriod * 60000,
+                wake: Date.now() - 24 * 60 * 60000,
+                refresh: Date.now() - 24 * 60 * 60000,
                 allowWake: true,
             };
             // only the first module should run getVehicles
@@ -41,7 +41,7 @@ module.exports = NodeHelper.create({
                 self.getVehicles(payload.vehicleIndex);
             }
         } else if (notification === 'DATA') {
-            //self.getData(payload.vehicleIndex);
+            self.getData(payload.vehicleIndex);
         }
     },
 
@@ -65,16 +65,21 @@ module.exports = NodeHelper.create({
                 // check whether vehicles are awake before getting data
                 Promise.resolve()
                 .then(() => {
-                    if (!gotVehicles) { self.getVehicles(i); gotVehicles = true; }
-                    //return true;
+                    if (!gotVehicles) { self.getVehicles(i); gotVehicles = true; 
+                    
+console.log("time since last getting of vehicles[" + i + "]: " + (Date.now() - self.lastUpdates[i].refresh) / 60000);
+}
+                    return true;
                 }).then(() => {
                     // if user used low wakePeriod, dont worry about keepnig the car awake with data requests
                     // otherwise, only get data if driving or if the car has have enough time to fall asleep
                     if ((self.lastUpdates[i].wakePeriod <= 15) || 
                         (self.vehicles[i].state === "driving") || 
-                        (self.vehicles[i].state === "online" && Date.now() - self.lastUpdates[i].refresh > 15 * 60000)) { self.getData(i); } //dont need to wait for this to complete before doing next vehicle
+                        ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].refresh > 15 * 60000)) { self.getData(i); } //dont need to wait for this to complete before doing next vehicle
                         
-                    //return;
+console.log("time since last refresh[" + i + "]: " + (Date.now() - self.lastUpdates[i].refresh) / 60000);
+                self.lastUpdates[i].refresh = Date.now();
+                    return;
                 });
             }
         });
@@ -92,6 +97,9 @@ module.exports = NodeHelper.create({
                     if ((now > start && now < end) ||
                         (start > end && now > start) ||
                         (start > end && now < end)) {
+console.log("wakeIntd[" + vehicleIndex + "]: s" + start + " e" + end + " p" + wakeInts[i].period +
+            "\n" + (new Date).toTimeString());
+
                         return wakeInts[i].period; // found the period for the current time!
                     }
                 }
@@ -132,8 +140,8 @@ module.exports = NodeHelper.create({
                 } else {
                     if (!body) {
                         if (self.config[vehicleIndex].showVerboseConsole) {
-                            if (error.includes('ETIMEDOUT') || error.includes('ESOCKETTIMEDOUT')) {
-                                console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection.\nbody:'+body+'\nerror:'+error);
+                            if (error.toString().includes('ENOTFOUND') || error.toString().includes('ETIMEDOUT') || error.toString().includes('ESOCKETTIMEDOUT')) {
+                                console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection. \nerror:'+error);
                             } else {
                                 console.log('MMM-Tesla3: unhandled error during data retrieval\nbody:'+body+'\nerror:'+error);
                             }
@@ -178,14 +186,14 @@ module.exports = NodeHelper.create({
                             'User-Agent': 'MMM-Tesla3' }
             }, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
-                    self.lastUpdates[payload.vehicleIndex].refresh = Date.now();
+console.log("time since last data[" + vehicleIndex + "]: " + (Date.now() - self.lastUpdates[vehicleIndex].refresh) / 60000);
                     self.vehicle_data[vehicleIndex] = JSON.parse(body).response;
                     self.sendSocketNotification('DATA: [' + vehicleIndex + ']', self.vehicle_data[vehicleIndex]);
                 } else {
                     if (!body) {
                         if (self.config[vehicleIndex].showVerboseConsole) {
-                            if (error.includes('ETIMEDOUT') || error.includes('ESOCKETTIMEDOUT')) {
-                                console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection.\nbody:'+body+'\nerror:'+error);
+                            if (error.toString().includes('ENOTFOUND') || error.toString().includes('ETIMEDOUT') || error.toString().includes('ESOCKETTIMEDOUT')) {
+                                console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection. \nerror:'+error);
                             } else {
                                 console.log('MMM-Tesla3: unhandled error during data retrieval\nbody:'+body+'\nerror:'+error);
                             }
@@ -202,7 +210,8 @@ module.exports = NodeHelper.create({
                             if (self.config[vehicleIndex].showVerboseConsole)
                                 console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake');
                             
-                            self.lastUpdates[payload.vehicleIndex].wake = Date.now();
+console.log("time since last wake[" + vehicleIndex + "]: " + (Date.now() - self.lastUpdates[vehicleIndex].wake) / 60000);
+                            self.lastUpdates[vehicleIndex].wake = Date.now();
                             wakeVehicle(() => self.getData(vehicleIndex));
                         }
                     } else if (JSON.parse(body).error === 'invalid bearer token') {
@@ -233,7 +242,7 @@ module.exports = NodeHelper.create({
                 if (!error && response.statusCode == 200) {
                     // send back waking response which contains some interim info
                     self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response);
-                    setTimeout(callback, 1000 * 60);
+                    setTimeout(callback, 60000);
                 } else {
                     if (self.config[vehicleIndex].showVerboseConsole)
                         console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake\n'+body);
@@ -272,7 +281,13 @@ module.exports = NodeHelper.create({
                 accessToken = JSON.parse(body);
                 callback();
             } else {
-                if (body.includes("invalid_request")) {
+                if (!body) {
+                    if (error.toString().includes('ENOTFOUND') || error.toString().includes('ETIMEDOUT') || error.toString().includes('ESOCKETTIMEDOUT')) {
+                        console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection. \nerror:'+error);
+                    } else {
+                        console.log('MMM-Tesla3: unhandled error during data retrieval\nbody:'+body+'\nerror:'+error);
+                    }
+                } else if (body.includes("invalid_request")) {
                     console.log('MMM-Tesla3: Fatal error during access_token request. Ensure a valid refresh_token has been pasted into token.json and that the file is formatted in valid JSON (i.e. {"refresh_token":"your refresh token here, e.g. ey...."} and restart.');
                 } else {
                     console.log('MMM-Tesla3: Fatal error during access_token update:\nbody:'+body+'\nerror:'+error);

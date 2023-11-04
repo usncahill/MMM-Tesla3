@@ -20,17 +20,17 @@ Module.register("MMM-Tesla3", {
 
     // Default module config
     defaults: {
-        vehicleIndex: 0,
+        vehicleIndex: 0,                //required for multi-car or not first car
         vehicleName: null,
         showVehicleName: true,
-        rangeDisplayType: "distance", //percent or distance
-        useHomeLink: true, // easy way of figuring out homeness
-        homeLatitude: null, // at least 4 decimals ##.####; gmaps
-        homeLongitude: null, // at least 4 decimals ##.####; gmaps
+        rangeDisplayType: "distance",   //percent or distance
+        useHomeLink: true,              // determine if home by proximity to homelink device
+        homeLatitude: null,             // at least 4 decimals ##.####; gmaps
+        homeLongitude: null,            // at least 4 decimals ##.####; gmaps
         showBatteryBar: true,
         showBatteryBarIcon: true,
         showBatteryBarTime: true,
-        showBatteryReserve: true, // shows when battery cold
+        showBatteryReserve: true,       // shows when battery cold
         showBatteryLevelColors: true,
         percentBatteryLevelLow: 15,
         percentBatteryLevelCritical: 5,
@@ -52,9 +52,9 @@ Module.register("MMM-Tesla3", {
         showScheduledChargeIcon: true,
         showConnectedIcon: true,
         // showTemperature NOT INCLUDED IN "Initial Changes"
-        refreshPeriod: 10, //minutes; check whether awake
-        //wakePeriod: 60, //minutes
-        //wakeIntervals: [],
+        refreshPeriod: 10,  // minutes; check whether awake and get data; otherwise wake for the wakePeriod time
+        wakePeriod: 60,     // minutes; when refreshing data, allow waking at this interval
+        wakeIntervals: [],  // optional: empty just means use wakePeriod
         sizeOptions: {
             width: 400,
             height: 203,
@@ -467,7 +467,7 @@ Module.register("MMM-Tesla3", {
 		`;
     },
     
-    // NOT PART OF "Initial Changes"
+    // NOT PART OF MMM-Tesla3 yet!
     generateTableDom: function (wrapper, data) {
 
         const makeSpan = function (className, content) {

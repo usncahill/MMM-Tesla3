@@ -16,7 +16,7 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 ## Current Issues Being Worked
 * Closing Incremental1 branch: various enhancements
-* Opening Incremental2 branch: troubleshoot waking hang, add options to avoid waking (vamp drain), add FE request loop and BE request tracking
+* Opening Incremental2 branch: troubleshoot waking hang, add options to avoid waking (vamp drain), BE loop controlling awake avoidance
 
 
 ## Using the module
@@ -73,8 +73,9 @@ The following properties can be configured. Note, don't write the indicated unit
 |`showOffPeakIcon`              | `true`        | `true` shows off peak charging option status as state icon, (clock with dollar)
 |`showScheduledChargeIcon`      | `true`        | `true` shows scheduled charging option status as state icon, (clock with bolt)
 |`showConnectedIcon`            | `true`        | `true` shows whether the car is connected to Tesla.com option status as state icon, (wifi)
-|`refreshInterval`              | `5` minutes   | e.g. `20` would query the Tesla server every 20 minutes
-|`refreshIntervalCharging`      | `15` minutes  | e.g. `20` would query the Tesla server every 20 minutes while charging
+|`refreshPeriod`                | `10` minutes  | the wait between module attempts to get data from Tesla.com
+|`wakePeriod`                   | `60` minutes  | the wait between allowing module to wake the car when getting data from Tesla.com
+|`wakeIntervals`                | `[]`          | an array describing time periods of different wakePeriods; times are written as hhmm; periods are minutes <br>Format: `[{start: start time, end: end time, period: wakePeriod for this interval},{...}]`<br>Example which wakes every 30 minute between 0800 and 2200: `wakeIntervals: [{start: 0800, end: 2200, period: 30}]`
 |**`sizeOptions`**              | n/a           | must be formatted like a sublist, e.g. <br>`sizeOptions: {`<br>`  width: 400,`<br>`  height: 203,`<br>`  batteryWidth: 250,`<br>`  batteryHeight: 75,`<br>`  topOffset: 40`<br>`},`<br>weird battery or overlapping parts means you likely picked bad numbers
 |   `width`                     | `400` pixels  | module width, module scales based on default
 |   `height`                    | `203` pixels  | module height, module scales based on default
