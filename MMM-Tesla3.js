@@ -80,15 +80,13 @@ Module.register("MMM-Tesla3", {
 
     start: function () {
 		Log.info('Starting module: ' + this.name);
-		this.sendSocketNotification('VEHICLE', this.config);
+		this.sendSocketNotification('START', this.config);
         this.vehicle = null;
         this.vehicleData = null;
     },
 
  	socketNotificationReceived: function(notification, payload) {
-		if (notification === "READY") {
-            this.sendSocketNotification('DATA', this.config);
-		} else if (notification === 'VEHICLE: [' + this.config.vehicleIndex + ']') {
+		if (notification === 'VEHICLE: [' + this.config.vehicleIndex + ']') {
             this.vehicle = payload;
 			this.updateDom();
         } else if (notification === 'WAKING: [' + this.config.vehicleIndex + ']') {
