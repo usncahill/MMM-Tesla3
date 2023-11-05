@@ -1,6 +1,6 @@
 # Module: MMM-Tesla3
 The `MMM-Tesla3` module is a <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a> addon. This module displays some of your <a href="https://www.tesla.com">Tesla's</a> data on your Mirror. It is forked from <a href="https://github.com/martinburheimtingstad/MMM-Tesla2">MMM-Tesla2</a> and the GUI is a modification of <a href="https://github.com/denverquane/MMM-Teslamate">MMM-TeslaMate</a>. Icons are modifications from [Tabler icon set](https://icon-sets.iconify.design/tabler/). 
-This is intended to be a current, state-of-the-API Tesla vehicle module, supporting multiple vehicles, displaying many configurable parameters, while avoiding use a database.
+This is intended to be a current, state-of-the-API Tesla vehicle module, supporting multiple vehicles, displaying many configurable parameters, while avoiding use of a database.
 
 
 ## Installing the module
@@ -15,8 +15,7 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 
 ## Current Issues Being Worked
-* Closing Incremental1 branch: various enhancements
-* Opening Incremental2 branch: troubleshoot waking hang, add options to avoid waking (vamp drain), add FE request loop and BE request tracking
+* Closing Incremental2 branch: waiting for feedback
 
 
 ## Using the module
@@ -73,8 +72,9 @@ The following properties can be configured. Note, don't write the indicated unit
 |`showOffPeakIcon`              | `true`        | `true` shows off peak charging option status as state icon, (clock with dollar)
 |`showScheduledChargeIcon`      | `true`        | `true` shows scheduled charging option status as state icon, (clock with bolt)
 |`showConnectedIcon`            | `true`        | `true` shows whether the car is connected to Tesla.com option status as state icon, (wifi)
-|`refreshInterval`              | `5` minutes   | e.g. `20` would query the Tesla server every 20 minutes
-|`refreshIntervalCharging`      | `15` minutes  | e.g. `20` would query the Tesla server every 20 minutes while charging
+|`refreshPeriod`                | `10` minutes  | the wait between module attempts to get data from Tesla.com
+|`wakePeriod`                   | `60` minutes  | the wait between allowing module to wake the car when getting data from Tesla.com
+|`wakeIntervals`                | `[]` (empty)  | - an array of time periods of different wakePeriods; <br>- uses `wakePeriod` for undescribed periods<br>- times are written as hhmm, periods are minutes <br>- Format: `[{start: 'time', end: 'time', period: minutes},{...}]`<br>- Example: frequent wake in morning, never wake at night: `wakeIntervals: [{start: '600', end: '800', period: 15},`<br>`               {start: '2000', end: '0400', period: 999}]`<br>- Warning: times with leading zeroes and no quotes, e.g. `start: 0800`, will get converted to hex. 
 |**`sizeOptions`**              | n/a           | must be formatted like a sublist, e.g. <br>`sizeOptions: {`<br>`  width: 400,`<br>`  height: 203,`<br>`  batteryWidth: 250,`<br>`  batteryHeight: 75,`<br>`  topOffset: 40`<br>`},`<br>weird battery or overlapping parts means you likely picked bad numbers
 |   `width`                     | `400` pixels  | module width, module scales based on default
 |   `height`                    | `203` pixels  | module height, module scales based on default

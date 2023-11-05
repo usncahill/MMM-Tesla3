@@ -20,17 +20,17 @@ Module.register("MMM-Tesla3", {
 
     // Default module config
     defaults: {
-        vehicleIndex: 0,
+        vehicleIndex: 0,                //required for multi-car or not first car
         vehicleName: null,
         showVehicleName: true,
-        rangeDisplayType: "distance", //percent or distance
-        useHomeLink: true, // easy way of figuring out homeness
-        homeLatitude: null, // at least 4 decimals ##.####; gmaps
-        homeLongitude: null, // at least 4 decimals ##.####; gmaps
+        rangeDisplayType: "distance",   //percent or distance
+        useHomeLink: true,              // determine if home by proximity to homelink device
+        homeLatitude: null,             // at least 4 decimals ##.####; gmaps
+        homeLongitude: null,            // at least 4 decimals ##.####; gmaps
         showBatteryBar: true,
         showBatteryBarIcon: true,
         showBatteryBarTime: true,
-        showBatteryReserve: true, // shows when battery cold
+        showBatteryReserve: true,       // shows when battery cold
         showBatteryLevelColors: true,
         percentBatteryLevelLow: 15,
         percentBatteryLevelCritical: 5,
@@ -52,8 +52,9 @@ Module.register("MMM-Tesla3", {
         showScheduledChargeIcon: true,
         showConnectedIcon: true,
         // showTemperature NOT INCLUDED IN "Initial Changes"
-        refreshInterval: 15, //minutes
-        refreshIntervalCharging: 5, //minutes
+        refreshPeriod: 10,  // minutes; check whether awake and get data; otherwise wake for the wakePeriod time
+        wakePeriod: 60,     // minutes; when refreshing data, allow waking at this interval
+        wakeIntervals: [],  // optional: empty just means use wakePeriod
         sizeOptions: {
             width: 400,
             height: 203,
@@ -79,15 +80,13 @@ Module.register("MMM-Tesla3", {
 
     start: function () {
 		Log.info('Starting module: ' + this.name);
-		this.sendSocketNotification('VEHICLE', this.config);
+		this.sendSocketNotification('START', this.config);
         this.vehicle = null;
         this.vehicleData = null;
     },
 
  	socketNotificationReceived: function(notification, payload) {
-		if (notification === "READY") {
-            this.sendSocketNotification('DATA', this.config);
-		} else if (notification === 'VEHICLE: [' + this.config.vehicleIndex + ']') {
+		if (notification === 'VEHICLE: [' + this.config.vehicleIndex + ']') {
             this.vehicle = payload;
 			this.updateDom();
         } else if (notification === 'WAKING: [' + this.config.vehicleIndex + ']') {
@@ -104,33 +103,10 @@ Module.register("MMM-Tesla3", {
     getDom: function () {
         const wrapper = document.createElement('div');
 
-		if (!this.vehicle) {
-			wrapper.innerHTML = "Loading";
-			return wrapper;
-		} else {
-            if (this.vehicle.state === 'asleep' || this.vehicle.state === 'offline') {
-                if (this.vehicle.display_name) {
-                    wrapper.innerHTML = "Waking " + this.vehicle.display_name;
-                    return wrapper;
-                }
-            } else if (this.vehicle.display_name && !this.vehicleData) {
-                wrapper.innerHTML = "Loading " + this.vehicle.display_name;
-                return wrapper;
-            }
-        }
-		if (!this.vehicleData) {
-			wrapper.innerHTML = "No data";
-			return wrapper;
-		}
-
-        if (this.config.homeLatitude && this.config.homeLongitude) {
-            this.isHome = (Math.sqrt((this.vehicleData.drive_state.latitude - this.config.homeLatitude)**2 + (this.vehicleData.drive_state.longitude - this.config.homeLongitude)**2) / 360 * this.config.earthRadius * 2 * Math.PI < this.config.homeRadius);
-        }
-
         // update the main visual: car, battery, icons
         this.generateGraphicDom(wrapper, this.vehicleData);
 
-        // update table (optional): NOT INCLUDED IN "Initial Changes"
+        // update table (optional): NOT INCLUDED YET ...
 /*         if (this.config.showTable)
             this.generateTableDom(wrapper, data); */
 
@@ -140,75 +116,129 @@ Module.register("MMM-Tesla3", {
     generateGraphicDom: function (wrapper, data) {
         var stateIcons = [];
         var warningIcons = [];
-        var state = data.state;
+        const path = this.data.path;
         
-        // save states for top left icons
-        (data.state === "asleep" || data.state === "suspended")
-            ? stateIcons.push("sleep")
-            : ((data.state === "driving" && this.config.showDrivingIcon)
-                ? stateIcons.push("steering-wheel")
-                : null);
+        // initialize in case data is empty
+        var state = (this.vehicle ? this.vehicle.state : "offline");
+        var vehicleName = this.config.vehicleName || (this.vehicle ? this.vehicle.display_name : "");
+        var batteryOverlayText = "Loading";
+        var [batteryBigNumber,batteryUnit,batteryLevelClass,batteryOverlayIcon] = ["","","",""];
+        var [batteryUsable,batteryReserve,batteryReserveVisible,chargeLimitSOC] = [0,0,false,0];
         
-        ((this.config.useHomeLink && data.vehicle_state.homelink_nearby || this.isHome) && this.config.showHomeIcon)
-            ? stateIcons.push("car-garage") : null;
-        
-        (data.charge_state.charging_state !== "Disconnected")
-            ? ((this.config.showPluggedIcon) 
-                ? stateIcons.push("plug") 
-                : null )
-            : ((data.state !== "driving" && this.config.showUnPluggedIcon)
-                ? warningIcons.push("plug-x")
-                : null);
-        
-        (data.charge_state.charging_state !== "charging" && (data.charge_state.scheduled_charging_pending || data.charge_state.managed_charging_active) && this.config.showScheduledChargeIcon)
-            ? stateIcons.push("clock-bolt") : null;
-        
-        (data.charge_state.off_peak_charging_enabled && this.config.showOffPeakIcon)
-            ? stateIcons.push("clock-dollar") : null;
-        
-        (data.vehicle_state.sentry_mode && this.config.showSentryModeIcon)
-            ? stateIcons.push("device-computer-camera") : null;
-        
-        (data.state === "updating")
-            ? stateIcons.push("cloud-download")
-            : (data.vehicle_state.software_update.status !== "")
-                ? stateIcons.push("cloud-plus")
+        // allow generating the dom without any data instead of boring "Loading..."
+        if (data) {
+            state = data.state;
+            
+            if (this.config.homeLatitude && this.config.homeLongitude) {
+                this.isHome = (Math.sqrt((this.vehicleData.drive_state.latitude - this.config.homeLatitude)**2 + (this.vehicleData.drive_state.longitude - this.config.homeLongitude)**2) / 360 * this.config.earthRadius * 2 * Math.PI < this.config.homeRadius);
+            }
+            
+            // save states for top left icons
+            (data.state === "asleep" || data.state === "suspended")
+                ? stateIcons.push("sleep")
+                : ((data.state === "driving" && this.config.showDrivingIcon)
+                    ? stateIcons.push("steering-wheel")
+                    : null);
+            
+            ((this.config.useHomeLink && data.vehicle_state.homelink_nearby || this.isHome) && this.config.showHomeIcon)
+                ? stateIcons.push("car-garage") : null;
+            
+            (data.charge_state.charging_state !== "Disconnected")
+                ? ((this.config.showPluggedIcon) 
+                    ? stateIcons.push("plug") 
+                    : null )
+                : ((data.state !== "driving" && this.config.showUnPluggedIcon)
+                    ? warningIcons.push("plug-x")
+                    : null);
+            
+            (data.charge_state.charging_state !== "Charging" && (data.charge_state.scheduled_charging_pending || data.charge_state.managed_charging_active) && this.config.showScheduledChargeIcon)
+                ? stateIcons.push("clock-bolt") : null;
+            
+            (data.charge_state.off_peak_charging_enabled && this.config.showOffPeakIcon)
+                ? stateIcons.push("clock-dollar") : null;
+            
+            (data.vehicle_state.sentry_mode && this.config.showSentryModeIcon)
+                ? stateIcons.push("device-computer-camera") : null;
+            
+            (data.state === "updating")
+                ? stateIcons.push("cloud-download")
+                : (data.vehicle_state.software_update.status !== "")
+                    ? stateIcons.push("cloud-plus")
+                    : null;
+            
+            (data.state === "offline")
+                ? warningIcons.push("wifi-off")
+                : (this.config.showConnectedIcon)
+                    ? stateIcons.push("wifi")
+                    : null;
+            
+            // save warning related states for top right icons
+            (data.vehicle_state.locked)
+                ? (this.config.showLockedIcon
+                    ? stateIcons.push("lock")
+                    : null) 
+                : (this.config.showUnLockedIcon)
+                    ? warningIcons.push("lock-open")
+                    : null;
+            
+            (data.vehicle_state.fd_window + data.vehicle_state.fp_window + data.vehicle_state.rd_window + data.vehicle_state.rp_window > 0)
+                ? warningIcons.push("window-up")
                 : null;
-        
-        (data.state === "offline")
-            ? warningIcons.push("wifi-off")
-            : (this.config.showConnectedIcon)
-                ? stateIcons.push("wifi")
+            
+            (data.vehicle_state.fd + data.vehicle_state.fp + data.vehicle_state.rd + data.vehicle_state.rp + data.vehicle_state.ft + data.vehicle_state.rt > 0)
+                ? warningIcons.push("car-door")
                 : null;
-        
-        // save warning related states for top right icons
-        (data.vehicle_state.locked)
-            ? (this.config.showLockedIcon
-                ? stateIcons.push("lock")
-                : null) 
-            : (this.config.showUnLockedIcon)
-                ? warningIcons.push("lock-open")
+            
+            (data.vehicle_state.tpms_soft_warning_fl || data.vehicle_state.tpms_soft_warning_fr || data.vehicle_state.tpms_soft_warning_rl || data.vehicle_state.tpms_soft_warning_rr)
+                ? warningIcons.push("tire-exclamation")
                 : null;
-        
-        (data.vehicle_state.fd_window + data.vehicle_state.fp_window + data.vehicle_state.rd_window + data.vehicle_state.rp_window > 0)
-            ? warningIcons.push("window-up")
-            : null;
-        
-        (data.vehicle_state.fd + data.vehicle_state.fp + data.vehicle_state.rd + data.vehicle_state.rp + data.vehicle_state.ft + data.vehicle_state.rt > 0)
-            ? warningIcons.push("car-door")
-            : null;
-        
-        (data.vehicle_state.tpms_soft_warning_fl || data.vehicle_state.tpms_soft_warning_fr || data.vehicle_state.tpms_soft_warning_rl || data.vehicle_state.tpms_soft_warning_rr)
-            ? warningIcons.push("tire-exclamation")
-            : null;
-        
-        (data.climate_state.is_climate_on && this.config.showAirConditioningIcon)
-            ? warningIcons.push("air-conditioning") : null;
-        
-        (data.vehicle_state.santa_mode && this.config.showEasterEggs)
-            ? warningIcons.push("santa")
-            : null;
-        
+            
+            (data.climate_state.is_climate_on && this.config.showAirConditioningIcon)
+                ? warningIcons.push("air-conditioning") : null;
+            
+            (data.vehicle_state.santa_mode && this.config.showEasterEggs)
+                ? warningIcons.push("santa")
+                : null;
+            
+            batteryUsable = data.charge_state.usable_battery_level;
+            batteryReserve = (data.charge_state.battery_level - data.charge_state.usable_battery_level);
+            batteryReserveVisible = (batteryReserve) > 1; // at <= 1% reserve the app and the car don't show it, so we won't either
+            chargeLimitSOC = data.charge_state.charge_limit_soc;
+            batteryOverlayIcon = (!this.config.showBatteryBarIcon) 
+                ? `` 
+                : (data.charge_state.charging_state === "Charging")
+                    ? `<span class="batteryicon icon-bolt"><load-file replaceWith src="${path}/icons/bolt.svg"></load-file></span>`
+                    : (data.charge_state.scheduled_charging_pending && this.config.showScheduledChargeIcon)
+                        ? (data.charge_state.scheduled_charging_mode === "StartAt")
+                            ? `<span class="batteryicon icon-clock-startat"><load-file replaceWith src="${path}/icons/clock-startat.svg"></load-file></span>`
+                            : `<span class="batteryicon icon-clock-departby"><load-file replaceWith src="${path}/icons/clock-departby.svg"></load-file></span>`
+                        : (batteryReserveVisible && showBatteryReserveIcon)
+                            ? `<span class="batteryicon icon-snowflake"><load-file replaceWith src="${path}/icons/snowflake.svg"></load-file></span>`
+                            : ``;
+            batteryOverlayText = (data.charge_state.scheduled_charging_pending && this.config.showBatteryBarTime) 
+                ? (data.charge_state.scheduled_charging_mode === "StartAt")
+                    ? ((data.charge_state.scheduled_charging_start_time_minutes || data.charge_state.scheduled_charging_start_time_app) / 0.6).toString().padStart(4,"0")
+                    : (data.charge_state.scheduled_departure_time_minutes / 0.6).toString().padStart(4,"0")
+                : ``;
+            
+            vehicleName = this.config.vehicleName || data.vehicle_state.vehicle_name;
+            batteryBigNumber = this.config.rangeDisplayType === "percent" 
+                ? data.charge_state.usable_battery_level.toFixed(0) 
+                : data.charge_state.battery_range.toFixed(0);
+            batteryUnit = this.config.rangeDisplayType === "percent" 
+                ? "%" 
+                : (data.gui_settings.gui_distance_units === "mi/hr" 
+                    ? "mi" 
+                    : "km");
+            batteryLevelClass = (data.charge_state.usable_battery_level > this.config.percentBatteryLevelLow || !this.config.showBatteryLevelColors)
+                ? "battery-level-normal"
+                : (data.charge_state.usable_battery_level > this.config.percentBatteryLevelCritical)
+                    ? "battery-level-low"
+                    : "battery-level-critical";
+        } else {
+            stateIcons.push("sleep");
+            warningIcons.push("wifi-off");
+        }
         
         // size options
         // size of the icons + battery (above text)
@@ -235,45 +265,7 @@ Module.register("MMM-Tesla3", {
         const imageOffset = this.config.carImageOptions.verticalOffset || 0;
         const imageOpacity = this.config.carImageOptions.imageOpacity || 0.2;
         
-        const path = this.data.path;
-        var batteryUsable = data.charge_state.usable_battery_level;
-        var batteryReserve = (data.charge_state.battery_level - data.charge_state.usable_battery_level);
-        var batteryReserveVisible = (batteryReserve) > 1; // at <= 1% reserve the app and the car don't show it, so we won't either
-        var chargeLimitSOC = data.charge_state.charge_limit_soc;
-        var batteryOverlayIcon = (!this.config.showBatteryBarIcon) 
-            ? `` 
-            : (data.charge_state.charging_state === "charging")
-                ? `<span class="batteryicon icon-bolt"><load-file replaceWith src="${path}/icons/bolt.svg"></load-file></span>`
-                : (batteryReserveVisible && showBatteryReserveIcon)
-                    ? `<span class="batteryicon icon-snowflake"><load-file replaceWith src="${path}/icons/snowflake.svg"></load-file></span>`
-                    : (data.charge_state.scheduled_charging_pending && this.config.showScheduledChargeIcon)
-                        ? (data.charge_state.scheduled_charging_mode === "StartAt")
-                            ? `<span class="batteryicon icon-clock-startat"><load-file replaceWith src="${path}/icons/clock-startat.svg"></load-file></span>`
-                            : `<span class="batteryicon icon-clock-departby"><load-file replaceWith src="${path}/icons/clock-departby.svg"></load-file></span>`
-                        : ``;
-        var batteryOverlayText = (!this.config.showBatteryBarTime) 
-            ? "" 
-            : (data.charge_state.scheduled_charging_pending && this.config.showScheduledChargeIcon)
-                ? (data.charge_state.scheduled_charging_mode === "StartAt")
-                    ? `<span class="batterytext">` + (data.charge_state.scheduled_charging_start_time_minutes || data.charge_state.scheduled_charging_start_time_app) / 0.6 + `</span>`
-                    : `<span class="batterytext">` + data.charge_state.scheduled_departure_time_minutes / 0.6 + `</span>`
-                : "";
-
-        var vehicleName = this.config.vehicleName || data.vehicle_state.vehicle_name;
         const showVehicleName = this.config.showVehicleName;
-        var batteryBigNumber = this.config.rangeDisplayType === "percent" 
-            ? data.charge_state.usable_battery_level.toFixed(0) 
-            : data.charge_state.battery_range.toFixed(0);
-        var batteryUnit = this.config.rangeDisplayType === "percent" 
-            ? "%" 
-            : (data.gui_settings.gui_distance_units === "mi/hr" 
-                ? "mi" 
-                : "km");
-        var batteryLevelClass = (data.charge_state.usable_battery_level > this.config.percentBatteryLevelLow || !this.config.showBatteryLevelColors)
-            ? "battery-level-normal"
-            : (data.charge_state.usable_battery_level > this.config.percentBatteryLevelCritical)
-                ? "battery-level-low"
-                : "battery-level-critical";
         const saturateModule = this.config.saturateModule;
         const saturateCarImage = this.config.saturateCarImage;
         const saturateIcons = this.config.saturateIcons;
@@ -283,8 +275,8 @@ Module.register("MMM-Tesla3", {
         if (this.config.showDebug) {
             vehicleName = "01234567890123";
             var showScheduledChargeTimeOnIcon = true;
-            batteryOverlayIcon = `<span class="batteryicon icon-clock-departby"><load-file replaceWith src="${path}/icons/clock-departby.svg"></load-file></span>`;
-            batteryOverlayText = `<span class="batterytext small">` + data.charge_state.scheduled_departure_time_minutes / 0.6 + `</span>`;
+            batteryOverlayIcon = `<span class="batteryicon icon-clock-startat"><load-file replaceWith src="${path}/icons/clock-startat.svg"></load-file></span>`;
+            batteryOverlayText = (2359).toString().padStart(4,"0") ;
             batteryLevelClass = "battery-level-critical";
             batteryUnit = "km"
             batteryBigNumber = 222;
@@ -388,7 +380,7 @@ Module.register("MMM-Tesla3", {
                                     align-items: center;
                                     justify-content: center;">
                             ${batteryOverlayIcon}
-                            ${batteryOverlayText}
+                            <span class="batterytext small">${batteryOverlayText}</span>
                         </div>
 
                     </div>
@@ -473,7 +465,7 @@ Module.register("MMM-Tesla3", {
 		`;
     },
     
-    // NOT PART OF "Initial Changes"
+    // NOT PART OF MMM-Tesla3 yet!
     generateTableDom: function (wrapper, data) {
 
         const makeSpan = function (className, content) {
