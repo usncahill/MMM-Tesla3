@@ -15,8 +15,7 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 
 ## Current Issues Being Worked
-* Closing Incremental1 branch: various enhancements
-* Opening Incremental2 branch: troubleshoot waking hang, add options to avoid waking (vamp drain), BE loop controlling awake avoidance
+* Closing Incremental2 branch: waiting for feedback
 
 
 ## Using the module
