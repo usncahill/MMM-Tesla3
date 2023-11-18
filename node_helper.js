@@ -15,7 +15,7 @@ module.exports = NodeHelper.create({
 
     start: function() {
         this.started = false;
-        this.ready = false;     
+        this.ready = false;
         
         this.config = {};       // mimics the main .js config
         this.vehicle_data = {}; // saves vehicle_data for each config vehicleIndex received
@@ -33,6 +33,7 @@ module.exports = NodeHelper.create({
             self.lastUpdates[payload.vehicleIndex] = {
                 wake: Date.now() - 24 * 60 * 60000,
                 refresh: Date.now() - 24 * 60 * 60000,
+                isWaking: false
             };
             // only the first module should run getVehicles
             if (!self.started) {
@@ -47,30 +48,44 @@ module.exports = NodeHelper.create({
         var gotVehicles = false;
         
         if (!self.ready) { return; }
-        
-        // loop through all the vehicles on the account, updating per their intervals
-        Object.keys(self.lastUpdates).forEach(i => {
-            if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
-                self.lastUpdates[i].wakeAttemptCount = 0;
-                self.lastUpdates[i].allowWake = false;
-                self.lastUpdates[i].wakePeriod = getWakePeriod(i);
+
+        // need to wait for this to complete before checking whether to get data
+        Promise.resolve()
+        .then(() => {
+            // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
+            for (const i in Object.keys(self.lastUpdates)) {
+                if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                 
-                // allowWake if user chose short wakePeriod or enough time has passed
-                if (self.lastUpdates[i].wakePeriod <= 15 || 
-                    Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
-                
-                // check whether vehicles are awake before getting data
-                Promise.resolve()
-                .then(() => {
+                // if any vehicles want a refresh, get the vehicle list to see if they are awake  to get data inside the wakePeriod
+                if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) { 
                     if (!gotVehicles) { gotVehicles = true; self.getVehicles(i); }
-                }).then(() => {
-                    // if user used low wakePeriod, dont worry about keepnig the car awake with data requests
-                    // otherwise, only get data if driving or if the car has have enough time to fall asleep
-                    if ((self.lastUpdates[i].wakePeriod <= 15) || 
-                        (self.vehicles[i].state === "driving") || 
-                        ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].refresh > 15 * 60000)) { self.getData(i); }
-                    self.lastUpdates[i].refresh = Date.now();
-                });
+                }
+            }
+        }).then(() => {
+            if (gotVehicles) {
+                //annoyingly repetitive code repeats :(
+                for (const i in Object.keys(self.lastUpdates)) {
+                    if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
+                    
+                    if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
+                        self.lastUpdates[i].wakeAttemptCount = 0;
+                        self.lastUpdates[i].allowWake = false;
+                        self.lastUpdates[i].wakePeriod = getWakePeriod(i);
+                        
+                        // allowWake if user chose short wakePeriod or enough time has passed
+                        if (self.lastUpdates[i].wakePeriod <= 15 || 
+                            Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
+                        
+                        // if user used low wakePeriod, dont worry about keepnig the car awake with data requests
+                        // otherwise, only get data if driving or if the car has have enough time to fall asleep
+                        
+                        if ((self.lastUpdates[i].wakePeriod <= 15) || 
+                            (self.vehicles[i].state === "driving") || 
+                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].refresh > 15 * 60000)) { self.getData(i); 
+                        
+                        self.lastUpdates[i].refresh = Date.now();
+                    }
+                }
             }
         });
         
@@ -194,10 +209,12 @@ module.exports = NodeHelper.create({
                         }
                         if (JSON.parse(body).error.includes('vehicle unavailable')) {
                             if (self.lastUpdates[vehicleIndex].allowWake) {
+                                self.lastUpdates[vehicleIndex].isWaking = true;
                                 self.lastUpdates[vehicleIndex].wakeAttemptCount += 1;
                                 
                                 if (self.lastUpdates[vehicleIndex].wakeAttemptCount > 5) {
                                     if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake after 5 attempts'); }
+                                    self.lastUpdates[vehicleIndex].isWaking = false;
                                     return 5;
                                 }
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake'); }
