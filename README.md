@@ -5,9 +5,10 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 ## Installing the module
 1. run `git clone https://github.com/usncahill/MMM-Tesla3` from inside your `MagicMirror/modules` folder.
-2. obtain a refresh_token. one method: goto [tesla-info.com](https://tesla-info.com/tesla-token.php) and follow the directions there.
-3. paste the refresh_token into the refresh_token field of token.json.
-4. setup your config.
+2. run `cd MMM-Tesla3` and `npm install` to install my ye olde deprecated dependancies (request, et al).
+3. obtain a refresh_token. one method: goto [tesla-info.com](https://tesla-info.com/tesla-token.php) and follow the directions there.
+4. paste the refresh_token into the refresh_token field of token.json.
+5. setup your config.
 
 
 ## Example MMM-Tesla3 in action! ###
