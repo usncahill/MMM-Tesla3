@@ -15,7 +15,7 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 
 ## Current Issues Being Worked
-* Closing Incremental2 branch: waiting for feedback
+* Opening Incremental3 branch: clean up error handling
 
 
 ## Using the module
