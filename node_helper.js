@@ -32,6 +32,7 @@ module.exports = NodeHelper.create({
             self.config[payload.vehicleIndex] = payload;
             self.lastUpdates[payload.vehicleIndex] = {
                 wake: Date.now() - 24 * 60 * 60000,
+                data: Date.now() - 24 * 60 * 60000,
                 refresh: Date.now() - 24 * 60 * 60000,
                 isWaking: false
             };
@@ -57,7 +58,7 @@ module.exports = NodeHelper.create({
                 if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                 
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake  to get data inside the wakePeriod
-                if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) { 
+                if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
                     if (!gotVehicles) { gotVehicles = true; self.getVehicles(i); }
                 }
             }
@@ -71,6 +72,7 @@ module.exports = NodeHelper.create({
                         self.lastUpdates[i].wakeAttemptCount = 0;
                         self.lastUpdates[i].allowWake = false;
                         self.lastUpdates[i].wakePeriod = getWakePeriod(i);
+                        self.lastUpdates[i].refresh = Date.now();
                         
                         // allowWake if user chose short wakePeriod or enough time has passed
                         if (self.lastUpdates[i].wakePeriod <= 15 || 
@@ -81,7 +83,7 @@ module.exports = NodeHelper.create({
                         
                         if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
-                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].refresh > 15 * 60000)) { self.getData(i); }
+                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].refresh > 15 * 60000)) { self.getData(i); self.lastUpdates[i].data = Date.now();}
                         
                         self.lastUpdates[i].refresh = Date.now();
                     }
@@ -176,7 +178,7 @@ module.exports = NodeHelper.create({
         } else {
             getVehicleData();
         }
-
+        
         function getVehicleData() {
             request.get({
                 url: baseUrl + '/vehicle_data',
@@ -187,6 +189,7 @@ module.exports = NodeHelper.create({
                 if (!error && response.statusCode == 200) {
                     self.vehicle_data[vehicleIndex] = JSON.parse(body).response;
                     self.sendSocketNotification('DATA: [' + vehicleIndex + ']', self.vehicle_data[vehicleIndex]);
+                    self.lastUpdates[vehicleIndex].isWaking = false;
                     return 0;
                 } else {
                     if (error) {
