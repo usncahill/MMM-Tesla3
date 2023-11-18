@@ -83,9 +83,7 @@ module.exports = NodeHelper.create({
                         
                         if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
-                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].refresh > 15 * 60000)) { self.getData(i); self.lastUpdates[i].data = Date.now();}
-                        
-                        self.lastUpdates[i].refresh = Date.now();
+                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); self.lastUpdates[i].data = Date.now();}
                     }
                 }
             }
