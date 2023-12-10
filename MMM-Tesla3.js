@@ -127,7 +127,10 @@ Module.register("MMM-Tesla3", {
         
         // allow generating the dom without any data instead of boring "Loading..."
         if (data) {
-            state = data.state;
+            // testing whether setting state here is necessary
+            // every data update will be preceded by a vehicle update, so vehicle.state will be fresh. 
+            // since vehicle.state is set above, dont overwrite again, in case this gGD run is prompted by a vehicle list update and not a data update. the data state could be stale
+            //state = data.state;
             
             if (this.config.homeLatitude && this.config.homeLongitude) {
                 this.isHome = (Math.sqrt((this.vehicleData.drive_state.latitude - this.config.homeLatitude)**2 + (this.vehicleData.drive_state.longitude - this.config.homeLongitude)**2) / 360 * this.config.earthRadius * 2 * Math.PI < this.config.homeRadius);

@@ -15,8 +15,13 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 ![Picture showing 4 configurations of the MMM-Tesla3 magic mirror module.](/images/MMM-Tesla3.png)
 
 
-## Current Issues Being Worked
-* Opening Incremental3 branch: clean up error handling
+## Work in progress
+* Fixing typos, mostly commenting but one in error handling
+* Create optional update time somewhere on modules
+* Test whether state=driving is a valid state. If not, use some other parameter to prompt the steering wheel icon.
+* Update data vehicle state when updating vehicle list, 
+    or 
+  check whether data and vehicle state are different (on MMM-Tesla3.js side) and use vehicle (update data?). 
 
 
 ## Using the module
