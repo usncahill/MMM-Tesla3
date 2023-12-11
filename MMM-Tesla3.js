@@ -27,6 +27,7 @@ Module.register("MMM-Tesla3", {
         useHomeLink: true,              // determine if home by proximity to homelink device
         homeLatitude: null,             // at least 4 decimals ##.####; gmaps
         homeLongitude: null,            // at least 4 decimals ##.####; gmaps
+        showLastUpdateTime: true,           // show time of last update
         showBatteryBar: true,
         showBatteryBarIcon: true,
         showBatteryBarTime: true,
@@ -83,12 +84,15 @@ Module.register("MMM-Tesla3", {
 		this.sendSocketNotification('START', this.config);
         this.vehicle = null;
         this.vehicleData = null;
+        this.lastUpdates = null;
     },
 
  	socketNotificationReceived: function(notification, payload) {
 		if (notification === 'VEHICLE: [' + this.config.vehicleIndex + ']') {
             this.vehicle = payload;
 			this.updateDom();
+        } else if (notification === 'UPDATE: [' + this.config.vehicleIndex + ']') {
+            this.lastUpdates = payload;
         } else if (notification === 'WAKING: [' + this.config.vehicleIndex + ']') {
             // do nothing, for now
             // the WAKE response is not enough to populate fields
@@ -121,7 +125,11 @@ Module.register("MMM-Tesla3", {
         // initialize in case data is empty
         var state = (this.vehicle ? this.vehicle.state : "offline");
         var vehicleName = this.config.vehicleName || (this.vehicle ? this.vehicle.display_name : "");
-        var batteryOverlayText = "Loading";
+        var batteryOverlayText = (this.lastUpdates)
+                                    ? (this.lastUpdates.isWaking)
+                                        ? "Waking" 
+                                        : "Loading"
+                                    : "Loading";
         var [batteryBigNumber,batteryUnit,batteryLevelClass,batteryOverlayIcon] = ["","","",""];
         var [batteryUsable,batteryReserve,batteryReserveVisible,chargeLimitSOC] = [0,0,false,0];
         
@@ -297,6 +305,13 @@ Module.register("MMM-Tesla3", {
             warningIcons.push(...tempIcons);
         }
         
+        var lastUpdateDateTime = ""
+        if (this.lastUpdates && this.config.showLastUpdateTime) {
+            const dtLastUpdateData = (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","");
+            lastUpdateDateTime = `<span class="small">Updated: ` + dtLastUpdateData + `</span>`;
+        }
+        
+        
         const showStatusIcons = this.config.showStatusIcons;
         const showWarningIcons = this.config.showWarningIcons;
         const renderedStateIcons = stateIcons.map((icon) => `<span class="stateicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
@@ -385,7 +400,6 @@ Module.register("MMM-Tesla3", {
                             ${batteryOverlayIcon}
                             <span class="batterytext small">${batteryOverlayText}</span>
                         </div>
-
                     </div>
                 </div>
             `;
@@ -403,7 +417,8 @@ Module.register("MMM-Tesla3", {
                             background-image: url('${teslaImageUrl}'); 
                             background-size: ${layWidth * (teslaModel == 'mx' ? 1.5 : 1)}px;
                             background-position: -${layWidth * (teslaModel == 'mx' ? 0.25 : 0)}px; ${imageOffset}px;
-                            filter: saturate(${saturateCarImage});"></div>
+                            filter: saturate(${saturateCarImage});">
+                </div>
                             
                 <div style="z-index: 2; 
                             position: relative;
@@ -461,7 +476,19 @@ Module.register("MMM-Tesla3", {
                     </div>
 
                     ${batteryBarHtml}
-
+                    
+                    <!-- Last Update Time -->
+                    <div class="small"
+                         style="z-index: 6;
+                                position: relative; 
+                                top: ${(layBatHeight/2) + 10}px; 
+                                left: 0; 
+                                height: 16px;
+                                text-align: right;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;">
+                        ${lastUpdateDateTime}
                     </div>
                 </div>
             </div>

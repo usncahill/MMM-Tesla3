@@ -83,7 +83,7 @@ module.exports = NodeHelper.create({
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
                         if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
-                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); self.lastUpdates[i].data = Date.now();}
+                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
                     }
                 }
             }
@@ -133,6 +133,7 @@ module.exports = NodeHelper.create({
                     for (let i = 0; i < JSON.parse(body).count; i++) {
                         self.vehicles[i] = JSON.parse(body).response[i];
                         self.sendSocketNotification('VEHICLE: [' + i + ']', self.vehicles[i]);
+                        self.sendSocketNotification('UPDATE: [' + i + ']', self.lastUpdates[i]);
                     }
                     
                     if (!self.ready) { self.ready = true; self.checkUpdates(); } // short-cycle the checkUpdates timer
@@ -185,9 +186,12 @@ module.exports = NodeHelper.create({
                             'User-Agent': 'MMM-Tesla3' }
             }, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
+                    self.lastUpdates[vehicleIndex].data = Date.now();
+                    self.lastUpdates[vehicleIndex].isWaking = false;
+                    self.sendSocketNotification('UPDATE: [' + vehicleIndex + ']', self.lastUpdates[vehicleIndex]);
+                    
                     self.vehicle_data[vehicleIndex] = JSON.parse(body).response;
                     self.sendSocketNotification('DATA: [' + vehicleIndex + ']', self.vehicle_data[vehicleIndex]);
-                    self.lastUpdates[vehicleIndex].isWaking = false;
                     return 0;
                 } else {
                     if (error) {
