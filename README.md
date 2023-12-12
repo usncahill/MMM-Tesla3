@@ -16,12 +16,14 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 
 ## Work in progress
-* Fixing typos, mostly commenting but one in error handling
+* ~~Fixing typos, mostly commenting but one in error handling~~
 * Create optional update time somewhere on modules
 * Test whether state=driving is a valid state. If not, use some other parameter to prompt the steering wheel icon.
-* Update data vehicle state when updating vehicle list, 
+* ~~Update data vehicle state when updating vehicle list, 
     or 
   check whether data and vehicle state are different (on MMM-Tesla3.js side) and use vehicle (update data?). 
+    or
+  **ignore vehicle_data.state, use only vehicles.state**~~
 
 
 ## Using the module
@@ -97,7 +99,7 @@ The following properties can be configured. Note, don't write the indicated unit
 |`homeRadius`                   | `100` varies  | shall be the same units as earthRadius option<br>default value is 100 meters. see `earthRadius`
 |`earthRadius`                  | `6371000` varies | assumed earth radius for approximate distance from home calcs<br>default is the earth radius in meters but you can convert homeRadius and earthRadius to mi if desired (they shall be the same units, there is no conversion) 
 |`showDebug`                    | `false`       | `true` turns on a bunch of troubleshooting items, crazy icons, etc.
-|`showVerboseConsole`           | `true`        | 'false' turns off the MM console logs
+|`showVerboseConsole`           | `true`        | `false` turns off the MM console logs
 |`showTable`                    | `false`       | `true` would enable untested legacy MMM-TeslaMate table feature
 |`showTableOdometer`            | `true`        | `true` shows odometer on legacy table
 

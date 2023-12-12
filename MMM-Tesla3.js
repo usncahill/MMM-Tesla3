@@ -481,13 +481,13 @@ Module.register("MMM-Tesla3", {
                     <div class="small"
                          style="z-index: 6;
                                 position: relative; 
-                                top: ${(layBatHeight/2) + 10}px; 
+                                top: 10px; 
                                 left: 0; 
                                 height: 16px;
                                 text-align: right;
                                 display: flex;
-                                align-items: center;
-                                justify-content: center;">
+                                align-items: right;
+                                justify-content: right;">
                         ${lastUpdateDateTime}
                     </div>
                 </div>
