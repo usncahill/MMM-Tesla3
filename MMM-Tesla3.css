@@ -16,6 +16,10 @@
   width: 45%;
 }
 
+.lastupdatetext {
+    font-size: 0.65em;
+}
+
 .battery-level-normal {
     background-color: #32ff32; /* full green */
 }

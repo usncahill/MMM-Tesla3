@@ -27,7 +27,7 @@ Module.register("MMM-Tesla3", {
         useHomeLink: true,              // determine if home by proximity to homelink device
         homeLatitude: null,             // at least 4 decimals ##.####; gmaps
         homeLongitude: null,            // at least 4 decimals ##.####; gmaps
-        showLastUpdateTime: true,           // show time of last update
+        showLastUpdateTime: true,       // show time of last update
         showBatteryBar: true,
         showBatteryBarIcon: true,
         showBatteryBarTime: true,
@@ -282,12 +282,18 @@ Module.register("MMM-Tesla3", {
         const saturateIcons = this.config.saturateIcons;
         const saturateBatteryBar = this.config.saturateBatteryBar;
         
+        var lastUpdateDateTime = ""
+        if (this.lastUpdates && this.config.showLastUpdateTime) {
+            const dtLastUpdateData = (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","").padStart(4,"0");
+            lastUpdateDateTime = `<span class="lastupdatetext small">Updated: ${dtLastUpdateData}</span>`;
+        }
+        
         // Debugging / Testing
         if (this.config.showDebug) {
             vehicleName = "01234567890123";
-            var showScheduledChargeTimeOnIcon = true;
+            dtLastUpdateData = "2358";
             batteryOverlayIcon = `<span class="batteryicon icon-clock-startat"><load-file replaceWith src="${path}/icons/clock-startat.svg"></load-file></span>`;
-            batteryOverlayText = (2359).toString().padStart(4,"0") ;
+            batteryOverlayText = (2359).toString().padStart(4,"0");
             batteryLevelClass = "battery-level-critical";
             batteryUnit = "km"
             batteryBigNumber = 222;
@@ -304,13 +310,6 @@ Module.register("MMM-Tesla3", {
             var tempIcons = ["plug-x","lock-open","window-up","car-door","air-conditioning","tire-exclamation"];
             warningIcons.push(...tempIcons);
         }
-        
-        var lastUpdateDateTime = ""
-        if (this.lastUpdates && this.config.showLastUpdateTime) {
-            const dtLastUpdateData = (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","");
-            lastUpdateDateTime = `<span class="small">Updated: ` + dtLastUpdateData + `</span>`;
-        }
-        
         
         const showStatusIcons = this.config.showStatusIcons;
         const showWarningIcons = this.config.showWarningIcons;
@@ -480,8 +479,9 @@ Module.register("MMM-Tesla3", {
                     <!-- Last Update Time -->
                     <div class="small"
                          style="z-index: 6;
+                                margin-right: ${30 * layScaleWidth}px;
                                 position: relative; 
-                                top: 10px; 
+                                top: 0px; 
                                 left: 0; 
                                 height: 16px;
                                 text-align: right;
