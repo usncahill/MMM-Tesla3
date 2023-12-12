@@ -170,7 +170,6 @@ Module.register("MMM-Tesla3", {
             
             (data.vehicle_state.sentry_mode && this.config.showSentryModeIcon)
                 ? stateIcons.push("device-computer-camera") : null;
-                ? stateIcons.push("device-computer-camera") : null;
             
             (data.state === "updating")
                 ? stateIcons.push("cloud-download")
