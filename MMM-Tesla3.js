@@ -147,7 +147,7 @@ Module.register("MMM-Tesla3", {
             // save states for top left icons
             (data.state === "asleep" || data.state === "suspended")
                 ? stateIcons.push("sleep")
-                : ((data.state === "driving" && this.config.showDrivingIcon)
+                : ((data.drive_state.shift_state !== "P" && this.config.showDrivingIcon)
                     ? stateIcons.push("steering-wheel")
                     : null);
             
@@ -158,7 +158,7 @@ Module.register("MMM-Tesla3", {
                 ? ((this.config.showPluggedIcon) 
                     ? stateIcons.push("plug") 
                     : null )
-                : ((data.state !== "driving" && this.config.showUnPluggedIcon)
+                : ((data.drive_state.shift_state !== "P" && this.config.showUnPluggedIcon)
                     ? warningIcons.push("plug-x")
                     : null);
             
@@ -169,6 +169,7 @@ Module.register("MMM-Tesla3", {
                 ? stateIcons.push("clock-dollar") : null;
             
             (data.vehicle_state.sentry_mode && this.config.showSentryModeIcon)
+                ? stateIcons.push("device-computer-camera") : null;
                 ? stateIcons.push("device-computer-camera") : null;
             
             (data.state === "updating")
