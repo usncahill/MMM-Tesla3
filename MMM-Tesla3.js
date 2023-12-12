@@ -158,7 +158,7 @@ Module.register("MMM-Tesla3", {
                 ? ((this.config.showPluggedIcon) 
                     ? stateIcons.push("plug") 
                     : null )
-                : ((data.drive_state.shift_state !== "P" && this.config.showUnPluggedIcon)
+                : ((data.drive_state.shift_state === "P" && this.config.showUnPluggedIcon)
                     ? warningIcons.push("plug-x")
                     : null);
             
