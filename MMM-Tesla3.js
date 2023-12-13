@@ -144,6 +144,14 @@ Module.register("MMM-Tesla3", {
                 this.isHome = (Math.sqrt((this.vehicleData.drive_state.latitude - this.config.homeLatitude)**2 + (this.vehicleData.drive_state.longitude - this.config.homeLongitude)**2) / 360 * this.config.earthRadius * 2 * Math.PI < this.config.homeRadius);
             }
             
+            // ye olde Teslas dont send their shift_state apparently, ugh
+            // force shift_state based on user presence
+            (data.drive_state.shift_state === "null")
+                ? (data.vehicle_state.is_user_present)
+                    ? data.drive_state.shift_state = "D"
+                    : data.drive_state.shift_state = "P"
+                : null;
+            
             // save states for top left icons
             (data.state === "asleep" || data.state === "suspended")
                 ? stateIcons.push("sleep")
