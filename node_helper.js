@@ -55,7 +55,7 @@ module.exports = NodeHelper.create({
         Promise.resolve()
         .then(() => {
             // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
-            for (const i in Object.keys(self.lastUpdates)) {
+            for (const i of Object.keys(self.lastUpdates)) {
                 if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                 
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
@@ -66,7 +66,7 @@ module.exports = NodeHelper.create({
         }).then(() => {
             if (gotVehicles) {
                 //annoyingly repetitive code repeats :(
-                for (const i in Object.keys(self.lastUpdates)) {
+                for (const i of Object.keys(self.lastUpdates)) {
                     if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
@@ -133,7 +133,7 @@ module.exports = NodeHelper.create({
                     for (let i = 0; i < JSON.parse(body).count; i++) {
                         self.vehicles[i] = JSON.parse(body).response[i];
                         self.sendSocketNotification('VEHICLE: [' + i + ']', self.vehicles[i]);
-                        self.sendSocketNotification('UPDATE: [' + i + ']', self.lastUpdates[i]);
+                        //if (i in self.lastUpdates) { self.sendSocketNotification('UPDATE: [' + i + ']', self.lastUpdates[i]); }
                     }
                     
                     if (!self.ready) { self.ready = true; self.checkUpdates(); } // short-cycle the checkUpdates timer

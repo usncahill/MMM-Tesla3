@@ -146,7 +146,7 @@ Module.register("MMM-Tesla3", {
             
             // ye olde Teslas dont send their shift_state apparently, ugh
             // force shift_state based on user presence
-            (data.drive_state.shift_state === "null")
+            (data.drive_state.shift_state === null)
                 ? (data.vehicle_state.is_user_present)
                     ? data.drive_state.shift_state = "D"
                     : data.drive_state.shift_state = "P"
