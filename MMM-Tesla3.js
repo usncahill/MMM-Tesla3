@@ -423,7 +423,7 @@ Module.register("MMM-Tesla3", {
                             opacity: ${imageOpacity}; 
                             background-image: url('${teslaImageUrl}'); 
                             background-size: ${layWidth * (teslaModel == 'mx' ? 1.5 : 1)}px;
-                            background-position: -${layWidth * (teslaModel == 'mx' ? 0.25 : 0)}px; ${imageOffset}px;
+                            background-position: -${layWidth * (teslaModel == 'mx' ? 0.25 : 0)}px ${imageOffset}px;
                             filter: saturate(${saturateCarImage});">
                 </div>
                             
