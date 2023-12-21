@@ -90,7 +90,7 @@ module.exports = NodeHelper.create({
         });
         
         function getWakePeriod(vehicleIndex) {
-            var now = (new Date()).toTimeString().substr(0,5).replace(":","");
+            var now = parseInt((new Date()).toTimeString().substr(0,5).replace(":",""));
             var start; var end;
             var wakeInts = self.config[vehicleIndex].wakeIntervals;
             
