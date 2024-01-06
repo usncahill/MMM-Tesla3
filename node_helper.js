@@ -153,7 +153,7 @@ module.exports = NodeHelper.create({
                             self.refreshToken(() => self.getVehicles(vehicleIndex));
                             return 2;
                         }
-                        if (JSON.parse(body).includes('timeout')) {
+                        if (body.includes('timeout')) {
                             if (verb) { console.log('MMM-Tesla3: timed out during vehicle list retrieval; trying again in 1 minute.'); }
                             setTimeout(() => self.getVehicles(vehicleIndex), 1000 * 60);
                             return 3;
