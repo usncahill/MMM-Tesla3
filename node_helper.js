@@ -148,7 +148,7 @@ module.exports = NodeHelper.create({
                     } 
                     
                     if (body) {
-                        if (JSON.parse(body).error === 'invalid bearer token') {
+                        if (JSON.parse(body).error.toString().includes('token')) {
                             if (verb) { console.log('MMM-Tesla3: access token got old; refreshing'); }
                             self.refreshToken(() => self.getVehicles(vehicleIndex));
                             return 2;
@@ -202,11 +202,11 @@ module.exports = NodeHelper.create({
                     }
                     
                     if (body) {
-                        if (JSON.parse(body).error === 'invalid bearer token') {
+                        if (JSON.parse(body).error.toString().includes('token')) {
                             if (verb) { console.log('MMM-Tesla3: access token got old; refreshing'); }
                             self.refreshToken(() => self.getData(vehicleIndex));
                             return 2;
-                        } 
+                        }
                         if (JSON.parse(body).error.includes('timeout')) {
                             if (verb) { console.log('MMM-Tesla3: timed out during data retrieval for [' + vehicleIndex + ']; trying again in 1 minute.'); }
                             setTimeout(() => self.getData(vehicleIndex), 1000 * 60);
