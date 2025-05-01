@@ -92,7 +92,7 @@ module.exports = NodeHelper.create({
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
                         if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
-                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i)); }
+                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
                     }
                 }
             }
