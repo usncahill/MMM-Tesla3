@@ -88,11 +88,18 @@ module.exports = NodeHelper.create({
                         if (self.lastUpdates[i].wakePeriod <= 15 || 
                             Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
                         
+                        // if cars asleep/offline and allowed to awake, wake_up then getData
+                        if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || 
+                            self.vehicles[i].state === "offline")) {
+                            console.log('MMM-Tesla3: vehicle [' + i + '] is asleep; attempting wake'); 
+                            self.wakeVehicle(i, () => self.getData(i));
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
-                        if ((self.lastUpdates[i].wakePeriod <= 15) || 
+                        } else if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
-                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
+                            ((self.vehicles[i].state === "online") && 
+                            Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
+                        }
                     }
                 }
             }
@@ -122,7 +129,6 @@ module.exports = NodeHelper.create({
 
     getVehicles: function(vehicleIndex) {
         var self = this;
-        const urlEndpoint = urlData + '/api/1/vehicles';
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
         if (accessToken === null) {
@@ -133,7 +139,7 @@ module.exports = NodeHelper.create({
         
         function getVehicleList() {
             request.get({
-                url: urlEndpoint,
+                url: urlData + '/api/1/vehicles',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
                             'Content-type': 'application/json' }
             }, function (error, response, body) {
@@ -178,24 +184,17 @@ console.log('MMM-Tesla3: vehicle list update:\nbody:'+body+'\nerror:'+error);
     
     getData: function(vehicleIndex) {
         var self = this;
-        const urlEndpoint = urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vin;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
         if (accessToken === null) {
-            self.refreshToken(() => getVehicleData());
+            self.refreshToken(() => doGetData());
         } else {
-            getVehicleData();
+            doGetData();
         }
         
-        function getVehicleData() {
-            if (self.vehicles[vehicleIndex].state === "asleep" || self.vehicles[vehicleIndex].state === "offline") { 
-                console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake'); 
-                wakeVehicle(() => self.getData(vehicleIndex));
-                return 4;
-            }
-            
+        function doGetData() {
             request.get({
-                url: urlEndpoint + '/vehicle_data',
+                url: urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vin + '/vehicle_data',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
                             'Content-type': 'application/json' }
             }, function (error, response, body) {
@@ -238,9 +237,8 @@ console.log('MMM-Tesla3: vehicle data update:\nbody:'+body+'\nerror:'+error);
                                     return 5;
                                 }
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake'); }
-                                
                                 self.lastUpdates[vehicleIndex].wake = Date.now();
-                                wakeVehicle(() => self.getData(vehicleIndex));
+                                self.wakeVehicle(vehicleIndex, () => self.getData(vehicleIndex));
                             }
                             return 4;
                         }
@@ -251,17 +249,29 @@ console.log('MMM-Tesla3: vehicle data update:\nbody:'+body+'\nerror:'+error);
                 }
             });
         }
+    },
+
+    wakeVehicle: function(vehicleIndex, callback) {
+        var self = this;
+        var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        function wakeVehicle(callback) {
+        if (accessToken === null) {
+            self.refreshToken(() => doWakeVehicle());
+        } else {
+            doWakeVehicle();
+        }
+        
+        //wake and return to process after 2 minutes
+        function doWakeVehicle () {
             request.post({
-                url: urlEndpoint + '/wake_up',
+                url: urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vin + '/wake_up',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
                             'Content-type': 'application/json' }
             }, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     // send back waking response which contains some interim info
-                    self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response);
-                    setTimeout(callback, 60000);
+                    if (verb) { self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response); }
+                    setTimeout(callback, 120000);
                 } else {
                     console.log('MMM-Tesla3: unhandled error during vehicle [' + vehicleIndex + '] wake\nbody:'+body+'\nerror:'+error);
                     return 99; //failed to update
@@ -269,7 +279,7 @@ console.log('MMM-Tesla3: vehicle data update:\nbody:'+body+'\nerror:'+error);
             });
         }
     },
-
+    
     refreshToken: function(callback) {
         var self = this;
         
