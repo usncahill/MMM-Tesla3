@@ -258,7 +258,7 @@ console.log('MMM-Tesla3: vehicle data update:\nbody:'+body+'\nerror:'+error);
                     setTimeout(callback, 60000);
                 } else {
                     console.log('MMM-Tesla3: unhandled error during vehicle [' + vehicleIndex + '] wake\nbody:'+body+'\nerror:'+error);
-                    setTimeout(return 99, 60000 * 15); //failed to update
+                    return 99; //failed to update
                 }
             });
         }
@@ -295,18 +295,18 @@ console.log('MMM-Tesla3: vehicle data update:\nbody:'+body+'\nerror:'+error);
                 if (response) {
                     if (response.statuscode == 400) {
                         console.log('MMM-Tesla3: Fatal error during access_token request. Ensure a valid refresh_token has been pasted into token.json and that the file is formatted in valid JSON (i.e. {"refresh_token":"your refresh token here, e.g. ey...."} and restart. If this was a previously working module but has been offline for a while, your refresh_token may have gone stale.');
-                        setTimeout(return 1, 60000 * 15);
+                        return 1;
                     }
                 }
                 if (error) {
                     if (error.toString().includes('ENOTFOUND') || error.toString().includes('ETIMEDOUT') || error.toString().includes('ESOCKETTIMEDOUT')) {
                         console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection. \nerror:'+error);
-                        setTimeout(return 1, 60000 * 15);
+                        return 1;
                     }
                 }
 
                 console.log('MMM-Tesla3: Unhandled error during access_token update:\nbody:'+body+'\nerror:'+error);
-                setTimeout(return 99, 60000 * 15);
+                return 99;a
             }
         });
     }
