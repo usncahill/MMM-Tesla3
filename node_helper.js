@@ -92,7 +92,7 @@ module.exports = NodeHelper.create({
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
                         if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
-                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
+                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i)); }
                     }
                 }
             }
@@ -178,7 +178,7 @@ console.log('MMM-Tesla3: vehicle list update:\nbody:'+body+'\nerror:'+error);
     
     getData: function(vehicleIndex) {
         var self = this;
-        const urlEndpoint = urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vehicle_id;
+        const urlEndpoint = urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vin;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
         if (accessToken === null) {
@@ -188,6 +188,12 @@ console.log('MMM-Tesla3: vehicle list update:\nbody:'+body+'\nerror:'+error);
         }
         
         function getVehicleData() {
+            if (self.vehicles[vehicleIndex].state === "asleep" || self.vehicles[vehicleIndex].state === "offline") { 
+                console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake'); 
+                wakeVehicle(() => self.getData(vehicleIndex));
+                return 4;
+            }
+            
             request.get({
                 url: urlEndpoint + '/vehicle_data',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
