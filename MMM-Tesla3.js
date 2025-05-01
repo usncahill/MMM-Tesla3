@@ -53,9 +53,10 @@ Module.register("MMM-Tesla3", {
         showScheduledChargeIcon: true,
         showConnectedIcon: true,
         // showTemperature NOT INCLUDED IN "Initial Changes"
-        refreshPeriod: 10,  // minutes; check whether awake and get data; otherwise wake for the wakePeriod time
-        wakePeriod: 60,     // minutes; when refreshing data, allow waking at this interval
+        refreshPeriod: 30,  // minutes; check whether awake and get data; otherwise wake for the wakePeriod time
+        wakePeriod: 960,     // minutes; when refreshing data, allow waking at this interval
         wakeIntervals: [],  // optional: empty just means use wakePeriod
+        clientId: null,
         sizeOptions: {
             width: 400,
             height: 203,
