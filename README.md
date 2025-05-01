@@ -21,7 +21,7 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 
 
-## Using the modulehttps://github.com/usncahill/MMM-Tesla3/issues/5#issuecomment-2113730861
+## Using the module ###
 To use this module, add it to the modules array in the `config/config.js` file:
 ````javascript
 modules: [
@@ -39,7 +39,7 @@ modules: [
 ]
 ````
 
-## Configuration options
+## Configuration options ###
 The following properties can be configured. Note, don't write the indicated units in your config.
 
 | Option                        | Default/Units | Description
