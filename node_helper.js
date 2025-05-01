@@ -38,8 +38,8 @@ module.exports = NodeHelper.create({
             clientId = payload.clientId;
             
             //do not allow refresh and wake periods below a hard limit
-            self.config[payload.vehicleIndex].refreshPeriod  = Math.min(payload.refreshPeriod, 30);
-            self.config[payload.vehicleIndex].wakePeriod  = Math.min(payload.wakePeriod, 120);
+            self.config[payload.vehicleIndex].refreshPeriod  = Math.max(payload.refreshPeriod, 30);
+            self.config[payload.vehicleIndex].wakePeriod  = Math.max(payload.wakePeriod, 120);
             self.lastUpdates[payload.vehicleIndex] = {
                 wake: Date.now() - 24 * 60 * 60000,
                 data: Date.now() - 24 * 60 * 60000,
@@ -117,7 +117,7 @@ module.exports = NodeHelper.create({
                     if ((now > start && now < end) ||
                         (start > end && now > start) ||
                         (start > end && now < end)) {
-                        return Math.min(wakeInts[i].period, 120); // found the period for the current time!
+                        return Math.max(wakeInts[i].period, 60); // found the period for the current time!
                     }
                 }
             }
@@ -131,12 +131,12 @@ module.exports = NodeHelper.create({
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
         if (accessToken === null) {
-            self.refreshToken(() => getVehicleList());
+            self.refreshToken(() => goGetVehicleList());
         } else {
-            getVehicleList();
+            goGetVehicleList();
         }
         
-        function getVehicleList() {
+        function goGetVehicleList() {
             request.get({
                 url: urlData + '/api/1/vehicles',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
