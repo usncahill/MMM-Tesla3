@@ -99,7 +99,6 @@ module.exports = NodeHelper.create({
                             (self.vehicles[i].state === "driving") || 
                             ((self.vehicles[i].state === "online") && 
                             Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
-                        }
                     }
                 }
             }
