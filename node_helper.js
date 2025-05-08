@@ -9,7 +9,11 @@
 const NodeHelper = require('node_helper');
 var fs = require('fs');
 var request = require('request');
+
+var clientId = null;
 var accessToken = null;
+const urlData = 'https://fleet-api.prd.na.vn.cloud.tesla.com';
+const urlAuth = 'https://fleet-auth.prd.vn.cloud.tesla.com';
 
 module.exports = NodeHelper.create({
 
@@ -29,7 +33,13 @@ module.exports = NodeHelper.create({
         var self = this;
         
         if (notification === 'START') {
+            // set up car to be updated on first checkUpdates pass
             self.config[payload.vehicleIndex] = payload;
+            clientId = payload.clientId;
+            
+            //do not allow refresh and wake periods below a hard limit
+            self.config[payload.vehicleIndex].refreshPeriod  = Math.max(payload.refreshPeriod, 30);
+            self.config[payload.vehicleIndex].wakePeriod  = Math.max(payload.wakePeriod, 120);
             self.lastUpdates[payload.vehicleIndex] = {
                 wake: Date.now() - 24 * 60 * 60000,
                 data: Date.now() - 24 * 60 * 60000,
@@ -46,6 +56,7 @@ module.exports = NodeHelper.create({
 
     checkUpdates: function() {
         var self = this;
+        var verb = self.config[vehicleIndex].showVerboseConsole;
         var gotVehicles = false;
         
         if (!self.ready) { return; }
@@ -54,10 +65,10 @@ module.exports = NodeHelper.create({
         Promise.resolve()
         .then(() => {
             // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
-            for (const i in Object.keys(self.lastUpdates)) {
+            for (const i of Object.keys(self.lastUpdates)) {
                 if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                 
-                // if any vehicles want a refresh, get the vehicle list to see if they are awake  to get data inside the wakePeriod
+                // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
                 if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
                     if (!gotVehicles) { gotVehicles = true; self.getVehicles(i); }
                 }
@@ -65,7 +76,7 @@ module.exports = NodeHelper.create({
         }).then(() => {
             if (gotVehicles) {
                 //annoyingly repetitive code repeats :(
-                for (const i in Object.keys(self.lastUpdates)) {
+                for (const i of Object.keys(self.lastUpdates)) {
                     if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
@@ -78,19 +89,24 @@ module.exports = NodeHelper.create({
                         if (self.lastUpdates[i].wakePeriod <= 15 || 
                             Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
                         
-                        // if user used low wakePeriod, dont worry about keepnig the car awake with data requests
-                        // otherwise, only get data if driving or if the car has have enough time to fall asleep
-                        
-                        if ((self.lastUpdates[i].wakePeriod <= 15) || 
+                        // if cars asleep/offline and allowed to awake, wake_up then getData
+                        if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || 
+                            self.vehicles[i].state === "offline")) {
+                            if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is asleep; attempting wake'); 
+                            self.wakeVehicle(i, () => self.getData(i));
+                        // if user used low wakePeriod, dont worry about keeping the car awake with data requests
+                        // otherwise, only get data if driving or if the car has had enough time to fall asleep
+                        } else if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
-                            ((self.vehicles[i].state === "online" || self.lastUpdates[i].allowWake) && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); self.lastUpdates[i].data = Date.now();}
+                            ((self.vehicles[i].state === "online") && 
+                            Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
                     }
                 }
             }
         });
         
         function getWakePeriod(vehicleIndex) {
-            var now = (new Date()).toTimeString().substr(0,5).replace(":","");
+            var now = parseInt((new Date()).toTimeString().substr(0,5).replace(":",""));
             var start; var end;
             var wakeInts = self.config[vehicleIndex].wakeIntervals;
             
@@ -102,7 +118,7 @@ module.exports = NodeHelper.create({
                     if ((now > start && now < end) ||
                         (start > end && now > start) ||
                         (start > end && now < end)) {
-                        return wakeInts[i].period; // found the period for the current time!
+                        return Math.max(wakeInts[i].period, 60); // found the period for the current time!
                     }
                 }
             }
@@ -113,21 +129,19 @@ module.exports = NodeHelper.create({
 
     getVehicles: function(vehicleIndex) {
         var self = this;
-        const baseUrl = 'https://owner-api.teslamotors.com/api/1/vehicles';
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
         if (accessToken === null) {
-            self.refreshToken(() => getVehicleList());
+            self.refreshToken(() => goGetVehicleList());
         } else {
-            getVehicleList();
+            goGetVehicleList();
         }
         
-        function getVehicleList() {
+        function goGetVehicleList() {
             request.get({
-                url: baseUrl,
+                url: urlData + '/api/1/vehicles',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
-                            'Content-type': 'application/json', 
-                            'User-Agent': 'MMM-Tesla3' }
+                            'Content-type': 'application/json' }
             }, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     for (let i = 0; i < JSON.parse(body).count; i++) {
@@ -147,14 +161,14 @@ module.exports = NodeHelper.create({
                     } 
                     
                     if (body) {
-                        if (JSON.parse(body).error === 'invalid bearer token') {
+                        if (JSON.parse(body).error.toString().includes('token')) {
                             if (verb) { console.log('MMM-Tesla3: access token got old; refreshing'); }
                             self.refreshToken(() => self.getVehicles(vehicleIndex));
                             return 2;
                         }
-                        if (JSON.parse(body).includes('timeout')) {
-                            if (verb) { console.log('MMM-Tesla3: timed out during vehicle list retrieval; trying again in 1 minute.'); }
-                            setTimeout(() => self.getVehicles(vehicleIndex), 1000 * 60);
+                        if (body.includes('timeout')) {
+                            if (verb) { console.log('MMM-Tesla3: timed out during vehicle list retrieval; trying again in 15 minute.'); }
+                            setTimeout(() => self.getVehicles(vehicleIndex), 15 * 60000);
                             return 3;
                         }
                     }
@@ -168,26 +182,27 @@ module.exports = NodeHelper.create({
     
     getData: function(vehicleIndex) {
         var self = this;
-        const baseUrl = 'https://owner-api.teslamotors.com/api/1/vehicles/' + self.vehicles[vehicleIndex].id;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
         if (accessToken === null) {
-            self.refreshToken(() => getVehicleData());
+            self.refreshToken(() => doGetData());
         } else {
-            getVehicleData();
+            doGetData();
         }
         
-        function getVehicleData() {
+        function doGetData() {
             request.get({
-                url: baseUrl + '/vehicle_data',
+                url: urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vin + '/vehicle_data',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
-                            'Content-type': 'application/json', 
-                            'User-Agent': 'MMM-Tesla3' }
+                            'Content-type': 'application/json' }
             }, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
+                    self.lastUpdates[vehicleIndex].data = Date.now();
+                    self.lastUpdates[vehicleIndex].isWaking = false;
+                    self.sendSocketNotification('UPDATE: [' + vehicleIndex + ']', self.lastUpdates[vehicleIndex]);
+                    
                     self.vehicle_data[vehicleIndex] = JSON.parse(body).response;
                     self.sendSocketNotification('DATA: [' + vehicleIndex + ']', self.vehicle_data[vehicleIndex]);
-                    self.lastUpdates[vehicleIndex].isWaking = false;
                     return 0;
                 } else {
                     if (error) {
@@ -198,14 +213,14 @@ module.exports = NodeHelper.create({
                     }
                     
                     if (body) {
-                        if (JSON.parse(body).error === 'invalid bearer token') {
+                        if (JSON.parse(body).error.toString().includes('token')) {
                             if (verb) { console.log('MMM-Tesla3: access token got old; refreshing'); }
                             self.refreshToken(() => self.getData(vehicleIndex));
                             return 2;
-                        } 
+                        }
                         if (JSON.parse(body).error.includes('timeout')) {
-                            if (verb) { console.log('MMM-Tesla3: timed out during data retrieval for [' + vehicleIndex + ']; trying again in 1 minute.'); }
-                            setTimeout(() => self.getData(vehicleIndex), 1000 * 60);
+                            if (verb) { console.log('MMM-Tesla3: timed out during data retrieval for [' + vehicleIndex + ']; trying again in 15 minute.'); }
+                            setTimeout(() => self.getData(vehicleIndex), 15 * 60000);
                             return 3;
                         }
                         if (JSON.parse(body).error.includes('vehicle unavailable')) {
@@ -219,9 +234,8 @@ module.exports = NodeHelper.create({
                                     return 5;
                                 }
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake'); }
-                                
                                 self.lastUpdates[vehicleIndex].wake = Date.now();
-                                wakeVehicle(() => self.getData(vehicleIndex));
+                                self.wakeVehicle(vehicleIndex, () => self.getData(vehicleIndex));
                             }
                             return 4;
                         }
@@ -232,18 +246,29 @@ module.exports = NodeHelper.create({
                 }
             });
         }
+    },
+
+    wakeVehicle: function(vehicleIndex, callback) {
+        var self = this;
+        var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        function wakeVehicle(callback) {
+        if (accessToken === null) {
+            self.refreshToken(() => doWakeVehicle());
+        } else {
+            doWakeVehicle();
+        }
+        
+        //wake and return to process after 2 minutes
+        function doWakeVehicle () {
             request.post({
-                url: baseUrl + '/wake_up',
+                url: urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vin + '/wake_up',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
-                            'Content-type': 'application/json', 
-                            'User-Agent': 'MMM-Tesla3' }
+                            'Content-type': 'application/json' }
             }, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     // send back waking response which contains some interim info
-                    self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response);
-                    setTimeout(callback, 60000);
+                    if (verb) { self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response); }
+                    setTimeout(callback, 120000);
                 } else {
                     console.log('MMM-Tesla3: unhandled error during vehicle [' + vehicleIndex + '] wake\nbody:'+body+'\nerror:'+error);
                     return 99; //failed to update
@@ -251,7 +276,7 @@ module.exports = NodeHelper.create({
             });
         }
     },
-
+    
     refreshToken: function(callback) {
         var self = this;
         
@@ -262,15 +287,13 @@ module.exports = NodeHelper.create({
         const credentials = {
             grant_type: 'refresh_token',
             refresh_token: accessToken.refresh_token,
-            client_id: 'ownerapi',
+            client_id: clientId,
             scope: 'openid email offline_access'
         };
-        const baseUrl = 'https://auth.tesla.com';
         
         request.post({
-                url: baseUrl + '/oauth2/v3/token',
-                headers: { 'Content-type': 'application/json', 
-                            'User-Agent': 'MMM-Tesla3' },
+                url: urlAuth + '/oauth2/v3/token',
+                headers: { 'Content-type': 'application/json' },
                 body: JSON.stringify(credentials)
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
@@ -282,7 +305,7 @@ module.exports = NodeHelper.create({
                 callback();
             } else {
                 if (response) {
-                    if (reponse.statuscode == 400) {
+                    if (response.statuscode == 400) {
                         console.log('MMM-Tesla3: Fatal error during access_token request. Ensure a valid refresh_token has been pasted into token.json and that the file is formatted in valid JSON (i.e. {"refresh_token":"your refresh token here, e.g. ey...."} and restart. If this was a previously working module but has been offline for a while, your refresh_token may have gone stale.');
                         return 1;
                     }
@@ -295,7 +318,7 @@ module.exports = NodeHelper.create({
                 }
 
                 console.log('MMM-Tesla3: Unhandled error during access_token update:\nbody:'+body+'\nerror:'+error);
-                return 99;
+                return 99;a
             }
         });
     }

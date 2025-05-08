@@ -9,16 +9,20 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 
 ## Installing the module
-1. run `git clone https://github.com/usncahill/MMM-Tesla3` from inside your `MagicMirror/modules` folder.
-2. run `cd MMM-Tesla3` and `npm install` to install my ye olde deprecated dependancies (request, et al).
-3. obtain a refresh_token. one method: goto [tesla-info.com](https://tesla-info.com/tesla-token.php) and follow the directions there.
-4. paste the refresh_token into the refresh_token field of token.json.
-5. setup your config.
+1. **RUN** `git clone https://github.com/usncahill/MMM-Tesla3` from inside your `MagicMirror/modules` folder.
+2. **RUN** `cd MMM-Tesla3` and `npm install` to install my ye olde deprecated dependancies (request, et al).
+3. **OBTAIN** a refresh_token. One method is using my MMM-T3-service to help communicate with Tesla during the app auth steps.
+4. **PASTE** the refresh_token into the refresh_token field of `example.json` **and SAVE** file as `token.json`.
+<br>**CAUTION**  As of 5/8/25, Tesla charges once your app data and wakes exceed $10. See Tesla Developer dsahboard for your app's usage.<br>
+5. **SETUP** options inside `MagicMirror/config.js`. 
 
 
 ## Example MMM-Tesla3 in action! ###
 ![Picture showing 4 configurations of the MMM-Tesla3 magic mirror module.](/images/MMM-Tesla3.png)
 
+
+## Work in progress
+None
 
 
 ## Using the module ###
@@ -46,16 +50,17 @@ The following properties can be configured. Note, don't write the indicated unit
 | :-:                           | :-:           | :-
 |`vehicleIndex`                 | `0`           | zero-based (0,1,2...) position of the car in your list of cars in Tesla's database.<br>when you get your `refresh_token` from [tesla-info.com](https://tesla-info.com/tesla-token.php), you can see the list there<br>**required for multicar to work**
 |`vehicleName`                  | `null`        | enter a value to override the name saved in your car / Tesla.com
-|`showVehicleName`              | `true`        | shows vehicle name at top of module
+|`showVehicleName`              | `true`        | `true` shows vehicle name at top of module
 |`rangeDisplayType`             | `distance`    | options: `distance`,`percent`<br>sets the large vehicle range value using the type chosen; range units come from the car's distance GUI settings retrieved from Tesla.com
 |`useHomeLink`                  | `true`        | `true` uses the car's proximity to Homelink geomarkers in the Tesla database to determine homeness, which overrides whatever the lat/long calculation determines
 |`homeLatitude`                 | `null` deg    | enter latitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates
 |`homeLongitude`                | `null` deg    | enter longitude as a decimal degrees to at least the 4th decimal place<br>recommend right-clicking google maps to get the coordinates
-|`showBatteryBar`               | `true`        | `true` to show a battery-shaped bar below the charge level / range indicator
-|`showBatteryBarIcon`           | `true`        | `true` to show the battery bar icon: bolt=charging, clock >\|=scheduled departby, clock \|>=scheduled startat, snowflake=battery cold
+|`showLastUpdateTime`           | `true`        | `true` shows the time data was updated below the data
+|`showBatteryBar`               | `true`        | `true` shows a battery-shaped bar below the charge level / range indicator
+|`showBatteryBarIcon`           | `true`        | `true` shows the battery bar icon: bolt=charging, clock >\|=scheduled departby, clock \|>=scheduled startat, snowflake=battery cold
 |`showBatteryBarTime`           | `true`        | `true` to show the time associated with the active scheduled charging option DepartBy or StartAt on the battery bar
-|`showBatteryReserve`           | `true`        | shows the portion of lost battery range/level as blue on battery bar
-|`showBatteryLevelColors`       | `true`        | `false` to turn of the battery level coloring in one line
+|`showBatteryReserve`           | `true`        | `true` shows the portion of lost battery range/level as blue on battery bar
+|`showBatteryLevelColors`       | `true`        | `false` turns of the battery level coloring in one line
 |`percentBatteryLevelLow`       | `15` %        | battery bar color set to yellow below this value; `0` to disable
 |`percentBatteryLevelCritical`  | `5` %         | battery bar color set to red below this value; `0` to disable
 |`saturateModule`               | `1`           | range: `0 - 2`, set to `0` to remove all color from module (grayscale)
@@ -94,7 +99,7 @@ The following properties can be configured. Note, don't write the indicated unit
 |`homeRadius`                   | `100` varies  | shall be the same units as earthRadius option<br>default value is 100 meters. see `earthRadius`
 |`earthRadius`                  | `6371000` varies | assumed earth radius for approximate distance from home calcs<br>default is the earth radius in meters but you can convert homeRadius and earthRadius to mi if desired (they shall be the same units, there is no conversion) 
 |`showDebug`                    | `false`       | `true` turns on a bunch of troubleshooting items, crazy icons, etc.
-|`showVerboseConsole`           | `true`        | 'false' turns off the MM console logs
+|`showVerboseConsole`           | `true`        | `false` turns off the MM console logs
 |`showTable`                    | `false`       | `true` would enable untested legacy MMM-TeslaMate table feature
 |`showTableOdometer`            | `true`        | `true` shows odometer on legacy table
 

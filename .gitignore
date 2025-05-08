@@ -1,2 +1,3 @@
-*.json
 *.xcf
+node_modules/*
+token.json

@@ -27,6 +27,7 @@ Module.register("MMM-Tesla3", {
         useHomeLink: true,              // determine if home by proximity to homelink device
         homeLatitude: null,             // at least 4 decimals ##.####; gmaps
         homeLongitude: null,            // at least 4 decimals ##.####; gmaps
+        showLastUpdateTime: true,       // show time of last update
         showBatteryBar: true,
         showBatteryBarIcon: true,
         showBatteryBarTime: true,
@@ -52,9 +53,10 @@ Module.register("MMM-Tesla3", {
         showScheduledChargeIcon: true,
         showConnectedIcon: true,
         // showTemperature NOT INCLUDED IN "Initial Changes"
-        refreshPeriod: 10,  // minutes; check whether awake and get data; otherwise wake for the wakePeriod time
-        wakePeriod: 60,     // minutes; when refreshing data, allow waking at this interval
+        refreshPeriod: 30,  // minutes; check whether awake and get data; otherwise wake for the wakePeriod time
+        wakePeriod: 960,     // minutes; when refreshing data, allow waking at this interval
         wakeIntervals: [],  // optional: empty just means use wakePeriod
+        clientId: null,
         sizeOptions: {
             width: 400,
             height: 203,
@@ -83,12 +85,16 @@ Module.register("MMM-Tesla3", {
 		this.sendSocketNotification('START', this.config);
         this.vehicle = null;
         this.vehicleData = null;
+        this.lastUpdates = null;
     },
 
  	socketNotificationReceived: function(notification, payload) {
 		if (notification === 'VEHICLE: [' + this.config.vehicleIndex + ']') {
             this.vehicle = payload;
+            this.vehicleData.state = this.vehicle.state; //update state
 			this.updateDom();
+        } else if (notification === 'UPDATE: [' + this.config.vehicleIndex + ']') {
+            this.lastUpdates = payload;
         } else if (notification === 'WAKING: [' + this.config.vehicleIndex + ']') {
             // do nothing, for now
             // the WAKE response is not enough to populate fields
@@ -121,22 +127,37 @@ Module.register("MMM-Tesla3", {
         // initialize in case data is empty
         var state = (this.vehicle ? this.vehicle.state : "offline");
         var vehicleName = this.config.vehicleName || (this.vehicle ? this.vehicle.display_name : "");
-        var batteryOverlayText = "Loading";
+        var batteryOverlayText = (this.lastUpdates)
+                                    ? (this.lastUpdates.isWaking)
+                                        ? "Waking" 
+                                        : "Loading"
+                                    : "Loading";
         var [batteryBigNumber,batteryUnit,batteryLevelClass,batteryOverlayIcon] = ["","","",""];
         var [batteryUsable,batteryReserve,batteryReserveVisible,chargeLimitSOC] = [0,0,false,0];
         
         // allow generating the dom without any data instead of boring "Loading..."
         if (data) {
-            state = data.state;
+            // testing whether setting state here is necessary
+            // every data update will be preceded by a vehicle update, so vehicle.state will be fresh. 
+            // since vehicle.state is set above, dont overwrite again, in case this gGD run is prompted by a vehicle list update and not a data update. the data state could be stale
+            //state = data.state;
             
             if (this.config.homeLatitude && this.config.homeLongitude) {
                 this.isHome = (Math.sqrt((this.vehicleData.drive_state.latitude - this.config.homeLatitude)**2 + (this.vehicleData.drive_state.longitude - this.config.homeLongitude)**2) / 360 * this.config.earthRadius * 2 * Math.PI < this.config.homeRadius);
             }
             
+            // ye olde Teslas dont send their shift_state apparently, ugh
+            // force shift_state based on user presence
+            (data.drive_state.shift_state === null)
+                ? (data.vehicle_state.is_user_present)
+                    ? data.drive_state.shift_state = "D"
+                    : data.drive_state.shift_state = "P"
+                : null;
+            
             // save states for top left icons
             (data.state === "asleep" || data.state === "suspended")
                 ? stateIcons.push("sleep")
-                : ((data.state === "driving" && this.config.showDrivingIcon)
+                : ((data.drive_state.shift_state !== "P" && this.config.showDrivingIcon)
                     ? stateIcons.push("steering-wheel")
                     : null);
             
@@ -147,7 +168,7 @@ Module.register("MMM-Tesla3", {
                 ? ((this.config.showPluggedIcon) 
                     ? stateIcons.push("plug") 
                     : null )
-                : ((data.state !== "driving" && this.config.showUnPluggedIcon)
+                : ((data.drive_state.shift_state === "P" && this.config.showUnPluggedIcon)
                     ? warningIcons.push("plug-x")
                     : null);
             
@@ -271,12 +292,18 @@ Module.register("MMM-Tesla3", {
         const saturateIcons = this.config.saturateIcons;
         const saturateBatteryBar = this.config.saturateBatteryBar;
         
+        var lastUpdateDateTime = ""
+        if (this.lastUpdates && this.config.showLastUpdateTime) {
+            const dtLastUpdateData = (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","").padStart(4,"0");
+            lastUpdateDateTime = `<span class="lastupdatetext small">Updated: ${dtLastUpdateData}</span>`;
+        }
+        
         // Debugging / Testing
         if (this.config.showDebug) {
             vehicleName = "01234567890123";
-            var showScheduledChargeTimeOnIcon = true;
+            dtLastUpdateData = "2358";
             batteryOverlayIcon = `<span class="batteryicon icon-clock-startat"><load-file replaceWith src="${path}/icons/clock-startat.svg"></load-file></span>`;
-            batteryOverlayText = (2359).toString().padStart(4,"0") ;
+            batteryOverlayText = (2359).toString().padStart(4,"0");
             batteryLevelClass = "battery-level-critical";
             batteryUnit = "km"
             batteryBigNumber = 222;
@@ -382,7 +409,6 @@ Module.register("MMM-Tesla3", {
                             ${batteryOverlayIcon}
                             <span class="batterytext small">${batteryOverlayText}</span>
                         </div>
-
                     </div>
                 </div>
             `;
@@ -399,8 +425,9 @@ Module.register("MMM-Tesla3", {
                             opacity: ${imageOpacity}; 
                             background-image: url('${teslaImageUrl}'); 
                             background-size: ${layWidth * (teslaModel == 'mx' ? 1.5 : 1)}px;
-                            background-position: -${layWidth * (teslaModel == 'mx' ? 0.25 : 0)}px; ${imageOffset}px;
-                            filter: saturate(${saturateCarImage});"></div>
+                            background-position: -${layWidth * (teslaModel == 'mx' ? 0.25 : 0)}px ${imageOffset}px;
+                            filter: saturate(${saturateCarImage});">
+                </div>
                             
                 <div style="z-index: 2; 
                             position: relative;
@@ -458,7 +485,20 @@ Module.register("MMM-Tesla3", {
                     </div>
 
                     ${batteryBarHtml}
-
+                    
+                    <!-- Last Update Time -->
+                    <div class="small"
+                         style="z-index: 6;
+                                margin-right: ${30 * layScaleWidth}px;
+                                position: relative; 
+                                top: 0px; 
+                                left: 0; 
+                                height: 16px;
+                                text-align: right;
+                                display: flex;
+                                align-items: right;
+                                justify-content: right;">
+                        ${lastUpdateDateTime}
                     </div>
                 </div>
             </div>

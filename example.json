@@ -1,0 +1,7 @@
+{"access_token":"PASTE_HERE",
+"refresh_token":"PASTE_HERE",
+"id_token":"",
+"expires_in":28800,
+"token_type":"Bearer",
+"directions1":"Replace the PASTE_HERE text above with your refresh_token and rename this file to token.json.",
+"directions2":"This file will get overwritten by MMM-Tesla3's first update. See README.md for more info."}
