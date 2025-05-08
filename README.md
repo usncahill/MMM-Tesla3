@@ -1,3 +1,8 @@
+## Current Issues Being Worked
+* pausing development due to Tesla breaking Owners API. sorry, i tried 😔
+
+
+
 # Module: MMM-Tesla3
 The `MMM-Tesla3` module is a <a href="https://github.com/MichMich/MagicMirror">MagicMirror</a> addon. This module displays some of your <a href="https://www.tesla.com">Tesla's</a> data on your Mirror. It is forked from <a href="https://github.com/martinburheimtingstad/MMM-Tesla2">MMM-Tesla2</a> and the GUI is a modification of <a href="https://github.com/denverquane/MMM-Teslamate">MMM-TeslaMate</a>. Icons are modifications from [Tabler icon set](https://icon-sets.iconify.design/tabler/). 
 This is intended to be a current, state-of-the-API Tesla vehicle module, supporting multiple vehicles, displaying many configurable parameters, while avoiding use of a database.
@@ -17,9 +22,10 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 
 
 ## Work in progress
+None
 
 
-## Using the module
+## Using the module ###
 To use this module, add it to the modules array in the `config/config.js` file:
 ````javascript
 modules: [
@@ -37,7 +43,7 @@ modules: [
 ]
 ````
 
-## Configuration options
+## Configuration options ###
 The following properties can be configured. Note, don't write the indicated units in your config.
 
 | Option                        | Default/Units | Description
