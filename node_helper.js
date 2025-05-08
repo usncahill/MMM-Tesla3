@@ -56,7 +56,6 @@ module.exports = NodeHelper.create({
 
     checkUpdates: function() {
         var self = this;
-        var verb = self.config[vehicleIndex].showVerboseConsole;
         var gotVehicles = false;
         
         if (!self.ready) { return; }
@@ -66,6 +65,7 @@ module.exports = NodeHelper.create({
         .then(() => {
             // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
             for (const i of Object.keys(self.lastUpdates)) {
+                const verb = self.config[i].showVerboseConsole;
                 if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                 
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
