@@ -56,6 +56,7 @@ module.exports = NodeHelper.create({
 
     checkUpdates: function() {
         var self = this;
+        var verb = self.config[vehicleIndex].showVerboseConsole;
         var gotVehicles = false;
         
         if (!self.ready) { return; }
@@ -91,7 +92,7 @@ module.exports = NodeHelper.create({
                         // if cars asleep/offline and allowed to awake, wake_up then getData
                         if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || 
                             self.vehicles[i].state === "offline")) {
-                            console.log('MMM-Tesla3: vehicle [' + i + '] is asleep; attempting wake'); 
+                            if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is asleep; attempting wake'); 
                             self.wakeVehicle(i, () => self.getData(i));
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
@@ -142,12 +143,10 @@ module.exports = NodeHelper.create({
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
                             'Content-type': 'application/json' }
             }, function (error, response, body) {
-console.log('MMM-Tesla3: vehicle list update:\nbody:'+body+'\nerror:'+error);
                 if (!error && response.statusCode == 200) {
                     for (let i = 0; i < JSON.parse(body).count; i++) {
                         self.vehicles[i] = JSON.parse(body).response[i];
                         self.sendSocketNotification('VEHICLE: [' + i + ']', self.vehicles[i]);
-                        //if (i in self.lastUpdates) { self.sendSocketNotification('UPDATE: [' + i + ']', self.lastUpdates[i]); }
                     }
                     
                     if (!self.ready) { self.ready = true; self.checkUpdates(); } // short-cycle the checkUpdates timer
@@ -197,7 +196,6 @@ console.log('MMM-Tesla3: vehicle list update:\nbody:'+body+'\nerror:'+error);
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
                             'Content-type': 'application/json' }
             }, function (error, response, body) {
-console.log('MMM-Tesla3: vehicle data update:\nbody:'+body+'\nerror:'+error);
                 if (!error && response.statusCode == 200) {
                     self.lastUpdates[vehicleIndex].data = Date.now();
                     self.lastUpdates[vehicleIndex].isWaking = false;
@@ -292,10 +290,9 @@ console.log('MMM-Tesla3: vehicle data update:\nbody:'+body+'\nerror:'+error);
             client_id: clientId,
             scope: 'openid email offline_access'
         };
-        const urlEndpoint = urlAuth;
         
         request.post({
-                url: urlEndpoint + '/oauth2/v3/token',
+                url: urlAuth + '/oauth2/v3/token',
                 headers: { 'Content-type': 'application/json' },
                 body: JSON.stringify(credentials)
         }, function (error, response, body) {

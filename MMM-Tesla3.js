@@ -91,6 +91,7 @@ Module.register("MMM-Tesla3", {
  	socketNotificationReceived: function(notification, payload) {
 		if (notification === 'VEHICLE: [' + this.config.vehicleIndex + ']') {
             this.vehicle = payload;
+            this.vehicleData.state = this.vehicle.state; //update state
 			this.updateDom();
         } else if (notification === 'UPDATE: [' + this.config.vehicleIndex + ']') {
             this.lastUpdates = payload;
