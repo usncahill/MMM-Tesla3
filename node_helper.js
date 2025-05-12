@@ -56,6 +56,7 @@ module.exports = NodeHelper.create({
 
     checkUpdates: function() {
         var self = this;
+        var verb = self.config[vehicleIndex].showVerboseConsole;
         var gotVehicles = false;
         
         if (!self.ready) { return; }
