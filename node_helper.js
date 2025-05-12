@@ -56,7 +56,6 @@ module.exports = NodeHelper.create({
 
     checkUpdates: function() {
         var self = this;
-        var verb = self.config[vehicleIndex].showVerboseConsole;
         var gotVehicles = false;
         
         if (!self.ready) { return; }
@@ -78,6 +77,7 @@ module.exports = NodeHelper.create({
             if (gotVehicles) {
                 //annoyingly repetitive code repeats :(
                 for (const i of Object.keys(self.lastUpdates)) {
+                    var verb = self.config[i].showVerboseConsole;
                     if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
