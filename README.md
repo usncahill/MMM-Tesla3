@@ -6,10 +6,10 @@ This is intended to be a current, state-of-the-API Tesla vehicle module, support
 ## Installing the module
 1. **RUN** `git clone https://github.com/usncahill/MMM-Tesla3` from inside your `MagicMirror/modules` folder.
 2. **RUN** `cd MMM-Tesla3` and `npm install` to install my ye olde deprecated dependancies (request, et al).
-3. **OBTAIN** a refresh_token. One method is using my MMM-T3-service to help communicate with Tesla during the app auth steps.
+3. **OBTAIN** a refresh_token. One method is using my [MMM-T3-service](https://github.com/usncahill/MMM-T3-service) to help communicate with Tesla during the app auth steps.
 4. **PASTE** the refresh_token into the refresh_token field of `example.json` **and SAVE** file as `token.json`.
-<br>**CAUTION**  As of 5/8/25, Tesla charges once your app data and wakes exceed $10. See Tesla Developer dsahboard for your app's usage.<br>
-5. **SETUP** options inside `MagicMirror/config.js`. 
+<br>**CAUTION**  As of 5/8/25, Tesla charges once your app data and wakes exceed $10. See Tesla Developer dashboard for your app's usage.<br>
+5. **SETUP** options inside `MagicMirror/config.js`.
 
 
 ## Example MMM-Tesla3 in action! ###
