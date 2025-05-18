@@ -294,7 +294,9 @@ Module.register("MMM-Tesla3", {
         
         var lastUpdateDateTime = ""
         if (this.lastUpdates && this.config.showLastUpdateTime) {
-            const dtLastUpdateData = (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","").padStart(4,"0");
+            const dtLastUpdateData = String((new Date(this.lastUpdates.data)).getMonth() + 1).padStart(2, '0') + '/' +
+                                     String((new Date(this.lastUpdates.data)).getDate()).padStart(2, '0') + ' ' +
+                                    (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","").padStart(4,"0");
             lastUpdateDateTime = `<span class="lastupdatetext small">Updated: ${dtLastUpdateData}</span>`;
         }
         
@@ -325,7 +327,6 @@ Module.register("MMM-Tesla3", {
         const showWarningIcons = this.config.showWarningIcons;
         const renderedStateIcons = stateIcons.map((icon) => `<span class="stateicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
         const renderedWarningIcons = warningIcons.map((icon) => `<span class="warningicon icon-${icon}"><load-file replaceWith src="${path}/icons/${icon}.svg"></load-file></span>`)
-        
         
         let batteryBarHtml = '';
         if (this.config.showBatteryBar) {
