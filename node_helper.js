@@ -60,7 +60,6 @@ module.exports = NodeHelper.create({
         var gotVehicles = false;
         
         if (!self.ready) { return; }
-        if (Date.now() > nextTokenUpdate) { self.refreshToken(() => self.checkUpdates()); }
         
         // need to wait for this to complete before checking whether to get data
         Promise.resolve()
@@ -134,7 +133,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        if (accessToken === null) {
+        if (Date.now() > nextTokenUpdate) {
             self.refreshToken(() => goGetVehicleList());
         } else {
             goGetVehicleList();
@@ -187,7 +186,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        if (accessToken === null) {
+        if (Date.now() > nextTokenUpdate) {
             self.refreshToken(() => doGetData());
         } else {
             doGetData();
@@ -255,7 +254,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        if (accessToken === null) {
+        if (Date.now() > nextTokenUpdate) {
             self.refreshToken(() => doWakeVehicle());
         } else {
             doWakeVehicle();
