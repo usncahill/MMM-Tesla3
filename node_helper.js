@@ -21,6 +21,7 @@ module.exports = NodeHelper.create({
         this.started = false;
         this.ready = false;
         
+        this.nextTokenUpdate = Date.now();  // force a token update on startup
         this.config = {};       // mimics the main .js config
         this.vehicle_data = {}; // saves vehicle_data for each config vehicleIndex received
         this.vehicles = {};     // saves each vehicle in Tesla API vehicle list
@@ -59,7 +60,8 @@ module.exports = NodeHelper.create({
         var gotVehicles = false;
         
         if (!self.ready) { return; }
-
+        if (Date.now() > nextTokenUpdate) { self.refreshToken(() => self.checkUpdates()); }
+        
         // need to wait for this to complete before checking whether to get data
         Promise.resolve()
         .then(() => {
@@ -299,8 +301,9 @@ module.exports = NodeHelper.create({
         }, function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 // WARNING: 
-                // this writes to the disk at least every 8 hours when accessToken.access_token goes stale
+                // this writes to the disk at least every 6 hours before the accessToken.access_token goes stale
                 // token.json "refresh_token" will not work forever, so this write keeps refresh_token updated with access_token
+                nextTokenUpdate = Date.now() + 6 * 60 * 60;
                 fs.writeFileSync(self.path + '/token.json', body);
                 accessToken = JSON.parse(body);
                 callback();
@@ -316,10 +319,15 @@ module.exports = NodeHelper.create({
                         console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection. \nerror:'+error);
                         return 1;
                     }
+                    
+                    if (response.statuscode == 401) {
+                        console.log('MMM-Tesla3: the refresh token has become invalid. \nerror:'+error);
+                        return 1;
+                    }
                 }
 
                 console.log('MMM-Tesla3: Unhandled error during access_token update:\nbody:'+body+'\nerror:'+error);
-                return 99;a
+                return 99;
             }
         });
     }
