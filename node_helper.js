@@ -302,7 +302,7 @@ module.exports = NodeHelper.create({
                 // WARNING: 
                 // this writes to the disk at least every 6 hours before the accessToken.access_token goes stale
                 // token.json "refresh_token" will not work forever, so this write keeps refresh_token updated with access_token
-                nextTokenUpdate = Date.now() + 6 * 60 * 60;
+                nextTokenUpdate = Date.now() + 6 * 60 * 60000;
                 fs.writeFileSync(self.path + '/token.json', body);
                 accessToken = JSON.parse(body);
                 callback();
