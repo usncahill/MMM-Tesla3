@@ -298,6 +298,7 @@ module.exports = NodeHelper.create({
                 headers: { 'Content-type': 'application/json' },
                 body: JSON.stringify(credentials)
         }, function (error, response, body) {
+            console.log(JSON.stringify(response));
             if (!error && response.statusCode == 200) {
                 // WARNING: 
                 // this writes to the disk at least every 6 hours before the accessToken.access_token goes stale
