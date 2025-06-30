@@ -50,7 +50,7 @@ module.exports = NodeHelper.create({
             // only the first module should run getVehicles
             if (!self.started) {
                 self.started = true;
-                self.getVehicles(payload.vehicleIndex);
+                self.refreshToken(() => {self.getVehicles(payload.vehicleIndex);});
             }
         }
     },
@@ -133,6 +133,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
+        console.log('getvehicles' + vehicleIndex + ' ' + Date.now() + ' ' + this.nextTokenUpdate);
         if (Date.now() > this.nextTokenUpdate) {
             self.refreshToken(() => goGetVehicleList());
         } else {
@@ -186,6 +187,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
+        console.log('getdata' + vehicleIndex + ' ' + Date.now() + ' ' + this.nextTokenUpdate);
         if (Date.now() > this.nextTokenUpdate) {
             self.refreshToken(() => doGetData());
         } else {
@@ -254,6 +256,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
+        console.log('wake' + vehicleIndex + ' ' + Date.now() + ' ' + this.nextTokenUpdate);
         if (Date.now() > this.nextTokenUpdate) {
             self.refreshToken(() => doWakeVehicle());
         } else {
@@ -298,7 +301,6 @@ module.exports = NodeHelper.create({
                 headers: { 'Content-type': 'application/json' },
                 body: JSON.stringify(credentials)
         }, function (error, response, body) {
-            console.log(JSON.stringify(response));
             if (!error && response.statusCode == 200) {
                 // WARNING: 
                 // this writes to the disk at least every 6 hours before the accessToken.access_token goes stale
@@ -310,19 +312,19 @@ module.exports = NodeHelper.create({
             } else {
                 if (response) {
                     if (response.statuscode == 400) {
-                        console.log('MMM-Tesla3: Fatal error during access_token request. Ensure a valid refresh_token has been pasted into token.json and that the file is formatted in valid JSON (i.e. {"refresh_token":"your refresh token here, e.g. ey...."} and restart. If this was a previously working module but has been offline for a while, your refresh_token may have gone stale.');
+                        console.log('MMM-Tesla3: Fatal error during access_token request. Ensure a valid refresh_token has been pasted into token.json and that the file is formatted in valid JSON (i.e. {"refresh_token":"your refresh token here, e.g. NF_...."} and restart. If this was a previously working module but has been offline for a while, your refresh_token may have gone stale.');
                         return 1;
+                    }
+                    
+                    if (response.statuscode == 401) {
+                        console.log('MMM-Tesla3: the refresh token has become invalid. \nerror:'+body);
+                        return 2;
                     }
                 }
                 if (error) {
                     if (error.toString().includes('ENOTFOUND') || error.toString().includes('ETIMEDOUT') || error.toString().includes('ESOCKETTIMEDOUT')) {
                         console.log('MMM-Tesla3: timed out connecting to tesla.com. Check internet connection. \nerror:'+error);
-                        return 1;
-                    }
-                    
-                    if (response.statuscode == 401) {
-                        console.log('MMM-Tesla3: the refresh token has become invalid. \nerror:'+error);
-                        return 1;
+                        return 3;
                     }
                 }
 
