@@ -27,7 +27,7 @@ module.exports = NodeHelper.create({
         this.vehicles = {};     // saves each vehicle in Tesla API vehicle list
         this.lastUpdates = {};  // saves checkUpdate related info: avoiding vamp drain by letting car sleep
         
-        setInterval(() => {this.checkUpdates();}, 60000);
+        setInterval(() => { this.checkUpdates(); }, 60000);
     },
 
     socketNotificationReceived: function(notification, payload) {
@@ -50,7 +50,7 @@ module.exports = NodeHelper.create({
             // only the first module should run getVehicles
             if (!self.started) {
                 self.started = true;
-                self.refreshToken(() => {self.getVehicles(payload.vehicleIndex);});
+                self.refreshToken(() => { self.getVehicles(payload.vehicleIndex); });
             }
         }
     },
@@ -133,8 +133,8 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        console.log('getvehicles' + vehicleIndex + ' ' + Date.now() + ' ' + this.nextTokenUpdate);
-        if (Date.now() > this.nextTokenUpdate) {
+        console.log('getvehicles' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
+        if (Date.now() > self.nextTokenUpdate) {
             self.refreshToken(() => goGetVehicleList());
         } else {
             goGetVehicleList();
@@ -187,8 +187,8 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        console.log('getdata' + vehicleIndex + ' ' + Date.now() + ' ' + this.nextTokenUpdate);
-        if (Date.now() > this.nextTokenUpdate) {
+        console.log('getdata' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
+        if (Date.now() > self.nextTokenUpdate) {
             self.refreshToken(() => doGetData());
         } else {
             doGetData();
@@ -256,8 +256,8 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        console.log('wake' + vehicleIndex + ' ' + Date.now() + ' ' + this.nextTokenUpdate);
-        if (Date.now() > this.nextTokenUpdate) {
+        console.log('wake' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
+        if (Date.now() > self.nextTokenUpdate) {
             self.refreshToken(() => doWakeVehicle());
         } else {
             doWakeVehicle();
@@ -305,18 +305,18 @@ module.exports = NodeHelper.create({
                 // WARNING: 
                 // this writes to the disk at least every 6 hours before the accessToken.access_token goes stale
                 // token.json "refresh_token" will not work forever, so this write keeps refresh_token updated with access_token
-                this.nextTokenUpdate = Date.now() + 6 * 60 * 60000;
+                self.nextTokenUpdate = Date.now() + 6 * 60 * 60000;
                 fs.writeFileSync(self.path + '/token.json', body);
                 accessToken = JSON.parse(body);
                 callback();
             } else {
                 if (response) {
-                    if (response.statuscode == 400) {
+                    if (response.statusCode == 400) {
                         console.log('MMM-Tesla3: Fatal error during access_token request. Ensure a valid refresh_token has been pasted into token.json and that the file is formatted in valid JSON (i.e. {"refresh_token":"your refresh token here, e.g. NF_...."} and restart. If this was a previously working module but has been offline for a while, your refresh_token may have gone stale.');
                         return 1;
                     }
                     
-                    if (response.statuscode == 401) {
+                    if (response.statusCode == 401) {
                         console.log('MMM-Tesla3: the refresh token has become invalid. \nerror:'+body);
                         return 2;
                     }
