@@ -135,7 +135,7 @@ module.exports = NodeHelper.create({
         
         console.log('getvehicles' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
         if (Date.now() > self.nextTokenUpdate) {
-            self.refreshToken(() => goGetVehicleList());
+            self.refreshToken(() => goGetVehicleList(),true);
         } else {
             goGetVehicleList();
         }
@@ -189,7 +189,7 @@ module.exports = NodeHelper.create({
         
         console.log('getdata' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
         if (Date.now() > self.nextTokenUpdate) {
-            self.refreshToken(() => doGetData());
+            self.refreshToken(() => doGetData(),true);
         } else {
             doGetData();
         }
@@ -258,7 +258,7 @@ module.exports = NodeHelper.create({
         
         console.log('wake' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
         if (Date.now() > self.nextTokenUpdate) {
-            self.refreshToken(() => doWakeVehicle());
+            self.refreshToken(() => doWakeVehicle(),true);
         } else {
             doWakeVehicle();
         }
@@ -282,9 +282,11 @@ module.exports = NodeHelper.create({
         }
     },
     
-    refreshToken: function(callback) {
+    refreshToken: function(callback, boolTimer = false) {
         var self = this;
         
+        if (boolTimer) { console.log('MMM-Tesla3: updating access token based on 6 hour threshold.'); }
+
         // original token.json need only contain [{refresh_token: "token characters"}]
         accessToken = JSON.parse(fs.readFileSync(self.path + '/token.json'));
         // at this point, accessToken.refresh_token is the only parameter of interest
@@ -292,9 +294,12 @@ module.exports = NodeHelper.create({
         const credentials = {
             grant_type: 'refresh_token',
             refresh_token: accessToken.refresh_token,
-            client_id: clientId,
-            scope: 'openid email offline_access'
+            client_id: clientId
         };
+        
+console.log('MMM-Tesla3: ' + '\nMem r_token: ' + accessToken.refresh_token + 
+                             '\nFile r_token:' + JSON.parse.fs.writeFileSync(self.path + '/token.json', body).refresh_token );
+
         
         request.post({
                 url: urlAuth + '/oauth2/v3/token',
