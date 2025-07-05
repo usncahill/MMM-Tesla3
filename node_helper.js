@@ -289,11 +289,16 @@ module.exports = NodeHelper.create({
 
 console.log('MMM-Tesla3, before retrieval: ' +
             '\nMem r_token: ' + accessToken.refresh_token + 
-            '\nFile r_token:' + JSON.parse(body).refresh_token);
+            '\nFile r_token:' + JSON.parse(fs.readFileSync(self.path + '/token.json')).refresh_token);
 
         // original token.json need only contain [{refresh_token: "token characters"}]
         accessToken = JSON.parse(fs.readFileSync(self.path + '/token.json'));
         // at this point, accessToken.refresh_token is the only parameter of interest
+        
+
+console.log('MMM-Tesla3, after retrieval: ' +
+            '\nMem r_token: ' + accessToken.refresh_token + 
+            '\nFile r_token:' + JSON.parse(fs.readFileSync(self.path + '/token.json')).refresh_token);
         
         const credentials = {
             grant_type: 'refresh_token',
