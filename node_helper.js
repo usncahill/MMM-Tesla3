@@ -287,9 +287,9 @@ module.exports = NodeHelper.create({
         
         if (boolTimer) { console.log('MMM-Tesla3: updating access token based on 6 hour threshold.'); }
 
-console.log('MMM-Tesla3, before retrieval: ' +
+if (boolTimer) { console.log('MMM-Tesla3, before retrieval: ' +
             '\nMem r_token: ' + accessToken.refresh_token + 
-            '\nFile r_token:' + JSON.parse(fs.readFileSync(self.path + '/token.json')).refresh_token);
+'\nFile r_token:' + JSON.parse(fs.readFileSync(self.path + '/token.json')).refresh_token); }
 
         // original token.json need only contain [{refresh_token: "token characters"}]
         accessToken = JSON.parse(fs.readFileSync(self.path + '/token.json'));
