@@ -297,8 +297,6 @@ module.exports = NodeHelper.create({
             client_id: clientId
         };
         
-console.log('MMM-Tesla3: ' + '\nMem r_token: ' + accessToken.refresh_token + 
-                             '\nFile r_token:' + JSON.parse(fs.readFileSync(self.path + '/token.json', body).refresh_token ));
 
         
         request.post({
@@ -312,6 +310,11 @@ console.log('MMM-Tesla3: ' + '\nMem r_token: ' + accessToken.refresh_token +
                 // token.json "refresh_token" will not work forever, so this write keeps refresh_token updated with access_token
                 self.nextTokenUpdate = Date.now() + 6 * 60 * 60000;
                 fs.writeFileSync(self.path + '/token.json', body);
+                
+                
+console.log('MMM-Tesla3: ' + '\nMem r_token: ' + accessToken.refresh_token + 
+                             '\nFile r_token:' + JSON.parse(body).refresh_token);
+                
                 accessToken = JSON.parse(body);
                 callback();
             } else {
