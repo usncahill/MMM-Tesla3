@@ -298,7 +298,7 @@ module.exports = NodeHelper.create({
         };
         
 console.log('MMM-Tesla3: ' + '\nMem r_token: ' + accessToken.refresh_token + 
-                             '\nFile r_token:' + JSON.parse.fs.readFileSync(self.path + '/token.json', body).refresh_token );
+                             '\nFile r_token:' + JSON.parse(fs.readFileSync(self.path + '/token.json', body).refresh_token ));
 
         
         request.post({
