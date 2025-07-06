@@ -60,6 +60,7 @@ module.exports = NodeHelper.create({
         var gotVehicles = false;
         
         if (!self.ready) { return; }
+        if (Date.now() > self.nextTokenUpdate) { self.refreshToken(null,true); }
         
         // need to wait for this to complete before checking whether to get data
         Promise.resolve()
@@ -133,12 +134,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        console.log('getvehicles' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
-        if (Date.now() > self.nextTokenUpdate) {
-            self.refreshToken(() => goGetVehicleList(),true);
-        } else {
-            goGetVehicleList();
-        }
+        goGetVehicleList();
         
         function goGetVehicleList() {
             request.get({
@@ -187,12 +183,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        console.log('getdata' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
-        if (Date.now() > self.nextTokenUpdate) {
-            self.refreshToken(() => doGetData(),true);
-        } else {
-            doGetData();
-        }
+        doGetData();
         
         function doGetData() {
             request.get({
@@ -256,12 +247,7 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        console.log('wake' + vehicleIndex + ' ' + Date.now() + ' ' + self.nextTokenUpdate);
-        if (Date.now() > self.nextTokenUpdate) {
-            self.refreshToken(() => doWakeVehicle(),true);
-        } else {
-            doWakeVehicle();
-        }
+        doWakeVehicle();
         
         //wake and return to process after 2 minutes
         function doWakeVehicle () {
@@ -306,8 +292,6 @@ console.log('MMM-Tesla3, after retrieval: ' +
             client_id: clientId
         };
         
-
-        
         request.post({
                 url: urlAuth + '/oauth2/v3/token',
                 headers: { 'Content-type': 'application/json' },
@@ -332,7 +316,7 @@ console.log('MMM-Tesla3, after update retrieval: ' +
             '\nMem r_token: ' + accessToken.refresh_token + 
             '\nFile r_token:' + JSON.parse(body).refresh_token);
             
-                callback();
+                if (typeOf callback === 'function') { callback(); }
             } else {
                 if (response) {
                     if (response.statusCode == 400) {
