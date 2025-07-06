@@ -316,7 +316,7 @@ console.log('MMM-Tesla3, after update retrieval: ' +
             '\nMem r_token: ' + accessToken.refresh_token + 
             '\nFile r_token:' + JSON.parse(body).refresh_token);
             
-                if (typeOf callback === 'function') { callback(); }
+                if (callback && typeof callback === 'function') { callback(); }
             } else {
                 if (response) {
                     if (response.statusCode == 400) {
