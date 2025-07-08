@@ -86,6 +86,7 @@ Module.register("MMM-Tesla3", {
         this.vehicle = null;
         this.vehicleData = null;
         this.lastUpdates = null;
+        this.lastError = null;
     },
 
  	socketNotificationReceived: function(notification, payload) {
@@ -93,15 +94,19 @@ Module.register("MMM-Tesla3", {
             this.vehicle = payload;
             this.vehicleData.state = this.vehicle.state; //update state
 			this.updateDom();
-        } else if (notification === 'UPDATE: [' + this.config.vehicleIndex + ']') {
-            this.lastUpdates = payload;
         } else if (notification === 'WAKING: [' + this.config.vehicleIndex + ']') {
             // do nothing, for now
             // the WAKE response is not enough to populate fields
             // VEHICLE would need to populate a this.vehicleName or something
             return;
+        } else if (notification === 'UPDATE: [' + this.config.vehicleIndex + ']') {
+            this.lastUpdates = payload;
 		} else if (notification === 'DATA: [' + this.config.vehicleIndex + ']') {
             this.vehicleData = payload;
+            this.lastError = null;
+			this.updateDom();
+		} else if (notification === 'ERROR: refresh token stale') {
+            this.lastError = payload;
 			this.updateDom();
 		}
 	},
@@ -294,10 +299,17 @@ Module.register("MMM-Tesla3", {
         
         var lastUpdateDateTime = ""
         if (this.lastUpdates && this.config.showLastUpdateTime) {
+            var ageLastUpdateData = ( Date.now() - this.lastUpdates.data ) / 60000 / 60;
+            var colorLastUpdateData = ( ageLastUpdateData < 8 )
+                ? ''
+                : ( ageLastUpdateData > 12 )
+                    ? 'battery-level-low'
+                    : 'battery-level-critical';
+            
             const dtLastUpdateData = String((new Date(this.lastUpdates.data)).getMonth() + 1).padStart(2, '0') + '/' +
                                      String((new Date(this.lastUpdates.data)).getDate()).padStart(2, '0') + ' ' +
                                     (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","").padStart(4,"0");
-            lastUpdateDateTime = `<span class="lastupdatetext small">Updated: ${dtLastUpdateData}</span>`;
+            lastUpdateDateTime = `<span class="lastupdatetext small ${colorLastUpdateData}">Updated: ${dtLastUpdateData}</span>`;
         }
         
         // Debugging / Testing
