@@ -16,8 +16,18 @@
   width: 45%;
 }
 
-.lastupdatetext {
+.update-text {
     font-size: 0.65em;
+}
+
+.update-freshness-bad {
+    color: #ff3232; /* full red */
+    font-weight: 1000;
+}
+
+.update-freshness-stale {
+    color: #ffff32; /* full yellow */
+    font-weight: 1000;
 }
 
 .battery-level-normal {

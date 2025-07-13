@@ -301,7 +301,6 @@ module.exports = NodeHelper.create({
                     if (response.statusCode == 401) {
                         console.log('MMM-Tesla3: the refresh token has become invalid; need to refresh however you got it and re-paste into token.json.' +
                                                  '\nerror:'+body);
-                                                 
                         self.sendSocketNotification('ERROR: refresh token stale',body);
                         return 2;
                     }

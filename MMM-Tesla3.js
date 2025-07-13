@@ -142,10 +142,9 @@ Module.register("MMM-Tesla3", {
         
         // allow generating the dom without any data instead of boring "Loading..."
         if (data) {
-            // testing whether setting state here is necessary
-            // every data update will be preceded by a vehicle update, so vehicle.state will be fresh. 
-            // since vehicle.state is set above, dont overwrite again, in case this gGD run is prompted by a vehicle list update and not a data update. the data state could be stale
-            //state = data.state;
+            var domErrorText = (lastError)
+                                    ? 'Error:' + left(lastError.error + '; ' + lastError.error_description, 20)
+                                    : "";
             
             if (this.config.homeLatitude && this.config.homeLongitude) {
                 this.isHome = (Math.sqrt((this.vehicleData.drive_state.latitude - this.config.homeLatitude)**2 + (this.vehicleData.drive_state.longitude - this.config.homeLongitude)**2) / 360 * this.config.earthRadius * 2 * Math.PI < this.config.homeRadius);
@@ -302,14 +301,14 @@ Module.register("MMM-Tesla3", {
             var ageLastUpdateData = ( Date.now() - this.lastUpdates.data ) / 60000 / 60;
             var colorLastUpdateData = ( ageLastUpdateData < 8 )
                 ? ''
-                : ( ageLastUpdateData > 12 )
-                    ? 'battery-level-low'
-                    : 'battery-level-critical';
+                : ( ageLastUpdateData < 12 )
+                    ? 'update-freshness-stale'
+                    : 'update-freshness-bad';
             
             const dtLastUpdateData = String((new Date(this.lastUpdates.data)).getMonth() + 1).padStart(2, '0') + '/' +
                                      String((new Date(this.lastUpdates.data)).getDate()).padStart(2, '0') + ' ' +
                                     (new Date(this.lastUpdates.data)).toTimeString().substr(0,5).replace(":","").padStart(4,"0");
-            lastUpdateDateTime = `<span class="lastupdatetext small ${colorLastUpdateData}">Updated: ${dtLastUpdateData}</span>`;
+            lastUpdateDateTime = `<span class="update-text small ${colorLastUpdateData}">Updated: ${dtLastUpdateData}</span>`;
         }
         
         // Debugging / Testing
@@ -499,7 +498,7 @@ Module.register("MMM-Tesla3", {
 
                     ${batteryBarHtml}
                     
-                    <!-- Last Update Time -->
+                    <!-- Lower information bar -->
                     <div class="small"
                          style="z-index: 6;
                                 margin-right: ${30 * layScaleWidth}px;
@@ -512,6 +511,19 @@ Module.register("MMM-Tesla3", {
                                 align-items: right;
                                 justify-content: right;">
                         ${lastUpdateDateTime}
+                    </div>
+                    <div class="small"
+                         style="z-index: 6;
+                                margin-left: ${30 * layScaleWidth}px;
+                                position: relative; 
+                                top: 0px; 
+                                left: 0; 
+                                height: 16px;
+                                text-align: left;
+                                display: flex;
+                                align-items: left;
+                                justify-content: left;">
+                        ${domErrorText}
                     </div>
                 </div>
             </div>
