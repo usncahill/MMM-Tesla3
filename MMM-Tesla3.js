@@ -139,8 +139,8 @@ Module.register("MMM-Tesla3", {
                                     : "Loading";
         var [batteryBigNumber,batteryUnit,batteryLevelClass,batteryOverlayIcon] = ["","","",""];
         var [batteryUsable,batteryReserve,batteryReserveVisible,chargeLimitSOC] = [0,0,false,0];
-        var domErrorText = (lastError)
-                                ? 'Error:' + left(lastError.error + '; ' + lastError.error_description, 20)
+        var domErrorText = (this.lastError)
+                                ? 'Error:' + left(this.lastError.error + '; ' + this.lastError.error_description, 20)
                                 : "";
 
         // allow generating the dom without any data instead of boring "Loading..."
