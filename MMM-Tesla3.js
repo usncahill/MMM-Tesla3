@@ -139,12 +139,12 @@ Module.register("MMM-Tesla3", {
                                     : "Loading";
         var [batteryBigNumber,batteryUnit,batteryLevelClass,batteryOverlayIcon] = ["","","",""];
         var [batteryUsable,batteryReserve,batteryReserveVisible,chargeLimitSOC] = [0,0,false,0];
-        
+        var domErrorText = (lastError)
+                                ? 'Error:' + left(lastError.error + '; ' + lastError.error_description, 20)
+                                : "";
+
         // allow generating the dom without any data instead of boring "Loading..."
         if (data) {
-            var domErrorText = (lastError)
-                                    ? 'Error:' + left(lastError.error + '; ' + lastError.error_description, 20)
-                                    : "";
             
             if (this.config.homeLatitude && this.config.homeLongitude) {
                 this.isHome = (Math.sqrt((this.vehicleData.drive_state.latitude - this.config.homeLatitude)**2 + (this.vehicleData.drive_state.longitude - this.config.homeLongitude)**2) / 360 * this.config.earthRadius * 2 * Math.PI < this.config.homeRadius);
