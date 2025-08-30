@@ -16,6 +16,8 @@ const urlData = 'https://fleet-api.prd.na.vn.cloud.tesla.com';
 const urlAuth = 'https://fleet-auth.prd.vn.cloud.tesla.com';
 const minRefreshPeriod = 15;
 const minWakePeriod = 60;
+const wakeDelay = 4;
+const wakeAttemptCountLimit = 3;
 
 module.exports = NodeHelper.create({
 
@@ -41,8 +43,8 @@ module.exports = NodeHelper.create({
             clientId = payload.clientId;
             
             //do not allow refresh and wake periods below a hard limit
-            self.config[payload.vehicleIndex].refreshPeriod  = Math.max(payload.refreshPeriod, minRefreshPeriod);
-            self.config[payload.vehicleIndex].wakePeriod  = Math.max(payload.wakePeriod, minWakePeriod);
+            self.config[payload.vehicleIndex].refreshPeriod = Math.max(payload.refreshPeriod, minRefreshPeriod);
+            self.config[payload.vehicleIndex].wakePeriod = Math.max(payload.wakePeriod, minWakePeriod);
             self.lastUpdates[payload.vehicleIndex] = {
                 wake: Date.now() - 24 * 60 * 60000,
                 data: Date.now() - 24 * 60 * 60000,
@@ -95,9 +97,9 @@ module.exports = NodeHelper.create({
                             Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
                         
                         // if cars asleep/offline and allowed to awake, wake_up then getData
-                        if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || 
-                            self.vehicles[i].state === "offline")) {
-                            if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is asleep; attempting wake'); }
+                        if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
+                            if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
+                            self.lastUpdates[vehicleIndex].wake = Date.now();
                             self.wakeVehicle(i, () => self.getData(i));
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
@@ -167,6 +169,13 @@ module.exports = NodeHelper.create({
                             setTimeout(() => self.getVehicles(vehicleIndex), 15 * 60000);
                             return 3;
                         }
+                        
+                    }
+                    if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
+                        if (verb) { console.log('MMM-Tesla3: error during vehicle list retrieval for [' + vehicleIndex + '] account disabled: EXCEEDED_LIMIT. \n' +
+                                                 'Consider raising limit or reducing wakePeriod. \n' +
+                                                 'This error will continue until next month or the limit is raised.'); }
+                         return 6;
                     }
                     
                     console.log('MMM-Tesla3: Unhandled error during vehicle list update:\nbody:'+body+'\nerror:'+error);
@@ -215,16 +224,22 @@ module.exports = NodeHelper.create({
                                 self.lastUpdates[vehicleIndex].isWaking = true;
                                 self.lastUpdates[vehicleIndex].wakeAttemptCount += 1;
                                 
-                                if (self.lastUpdates[vehicleIndex].wakeAttemptCount > 5) {
-                                    if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake after 5 attempts'); }
+                                if (self.lastUpdates[vehicleIndex].wakeAttemptCount > wakeAttemptCountLimit) {
+                                    if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake after 3 attempts'); }
                                     self.lastUpdates[vehicleIndex].isWaking = false;
                                     return 5;
                                 }
-                                if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] is asleep; attempting wake'); }
+                                if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] error "unavailable"; attempting wake'); }
                                 self.lastUpdates[vehicleIndex].wake = Date.now();
                                 self.wakeVehicle(vehicleIndex, () => self.getData(vehicleIndex));
                             }
                             return 4;
+                        }
+                        if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
+                            if (verb) { console.log('MMM-Tesla3: error during data retrieval for [' + vehicleIndex + '] account disabled: EXCEEDED_LIMIT. \n' +
+                                                     'Consider raising limit or reducing wakePeriod. \n' +
+                                                     'This error will continue until next month or the limit is raised.'); }
+                             return 6;
                         }
                     }
                     
@@ -251,8 +266,17 @@ module.exports = NodeHelper.create({
                 if (!error && response.statusCode == 200) {
                     // send back waking response which contains some interim info
                     if (verb) { self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response); }
-                    setTimeout(callback, 120000);
+                    setTimeout(callback, wakeDelay * 60000);
                 } else {
+                    if (body) {
+                        if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
+                            if (verb) { console.log('MMM-Tesla3: error during wake for [' + vehicleIndex + '] account disabled: EXCEEDED_LIMIT. \n' +
+                                                     'Consider raising limit or reducing wakePeriod. \n' +
+                                                     'This error will continue until next month or the limit is raised.'); }
+                             return 6;
+                        }
+                    }
+                    
                     console.log('MMM-Tesla3: unhandled error during vehicle [' + vehicleIndex + '] wake\nbody:'+body+'\nerror:'+error);
                     return 99; //failed to update
                 }
@@ -292,8 +316,8 @@ module.exports = NodeHelper.create({
             } else {
                 if (response) {
                     if (response.statusCode == 400) {
-                        console.log('MMM-Tesla3: Bad request error during access_token request. Potential causes here:' + 
-                                                 'https://developer.tesla.com/docs/fleet-api/getting-started/conventions.' +
+                        console.log('MMM-Tesla3: Bad request error during access_token request. Potential causes here:\n' + 
+                                                 'https://developer.tesla.com/docs/fleet-api/getting-started/conventions.\n' +
                                                  'Maybe bad client id in config file.');
                         return 1;
                     }
