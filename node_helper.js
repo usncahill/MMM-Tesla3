@@ -77,11 +77,11 @@ module.exports = NodeHelper.create({
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
                 if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
                     if (!gotVehicles) { gotVehicles = true; self.getVehicles(i); }
+                    break; //stop parsing list once one vehicle gets vehicles
                 }
             }
         }).then(() => {
             if (gotVehicles) {
-                //annoyingly repetitive code repeats :(
                 for (const i of Object.keys(self.lastUpdates)) {
                     var verb = self.config[i].showVerboseConsole;
                     if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
@@ -110,6 +110,8 @@ module.exports = NodeHelper.create({
                     }
                 }
             }
+        }).catch((error) => {
+            // do nothing; the error likely showed a console.log
         });
         
         function getWakePeriod(vehicleIndex) {
