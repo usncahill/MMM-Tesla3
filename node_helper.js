@@ -166,18 +166,17 @@ module.exports = NodeHelper.create({
                     } 
                     
                     if (body) {
-                        if (body.includes('timeout')) {
+                        if (JSON.parse(body).error.includes('timeout')) {
                             if (verb) { console.log('MMM-Tesla3: timed out during vehicle list retrieval; trying again in 15 minute.'); }
                             setTimeout(() => self.getVehicles(vehicleIndex), 15 * 60000);
                             return 3;
                         }
-                        
-                    }
-                    if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
-                        if (verb) { console.log('MMM-Tesla3: error during vehicle list retrieval for [' + vehicleIndex + '] account disabled: EXCEEDED_LIMIT. \n' +
+                        if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
+                            if (verb) { console.log('MMM-Tesla3: error during vehicle list retrieval for [' + vehicleIndex + '] account disabled: EXCEEDED_LIMIT. \n' +
                                                  'Consider raising limit or reducing wakePeriod. \n' +
                                                  'This error will continue until next month or the limit is raised.'); }
-                         return 6;
+                            return 6;
+                        }
                     }
                     
                     console.log('MMM-Tesla3: Unhandled error during vehicle list update:\nbody:'+body+'\nerror:'+error);
