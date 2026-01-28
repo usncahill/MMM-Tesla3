@@ -72,7 +72,7 @@ module.exports = NodeHelper.create({
             // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
             for (const i of Object.keys(self.lastUpdates)) {
                 const verb = self.config[i].showVerboseConsole;
-                if (!self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
+                if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
                 
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
                 if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
@@ -85,7 +85,7 @@ module.exports = NodeHelper.create({
                 for (const i of Object.keys(self.lastUpdates)) {
                     var verb = self.config[i].showVerboseConsole;
                     
-                    if (!self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
+                    if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
                         self.lastUpdates[i].allowWake = false;
