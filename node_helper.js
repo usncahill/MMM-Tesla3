@@ -87,7 +87,6 @@ module.exports = NodeHelper.create({
                     if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
-                        self.lastUpdates[i].wakeAttemptCount = 0;
                         self.lastUpdates[i].allowWake = false;
                         self.lastUpdates[i].wakePeriod = getWakePeriod(i);
                         self.lastUpdates[i].refresh = Date.now();
@@ -98,9 +97,20 @@ module.exports = NodeHelper.create({
                         
                         // if cars asleep/offline and allowed to awake, wake_up then getData
                         if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
-                            if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
-                            self.lastUpdates[i].wake = Date.now();
-                            self.wakeVehicle(i, () => self.getData(i));
+                            self.lastUpdates[vehicleIndex].wakeAttemptCount += 1;
+                            
+                            if (self.lastUpdates[vehicleIndex].wakeAttemptCount > wakeAttemptCountLimit) {
+                                if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake after ' + wakeAttemptCountLimit + ' attempts'); }
+                                self.lastUpdates[vehicleIndex].wake = Date.now(); // dont attempt again until next wakePeriod to prevent excessive wake
+                                self.lastUpdates[vehicleIndex].wakeAttemptCount == 0;
+                                self.lastUpdates[vehicleIndex].isWaking = false;
+                                return 5;
+                            } else {
+                                if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
+                                self.lastUpdates[vehicleIndex].wake = Date.now();
+                                self.lastUpdates[vehicleIndex].isWaking = true;
+                                self.wakeVehicle(vehicleIndex);
+                            }
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
                         } else if ((self.lastUpdates[i].wakePeriod <= 15) || 
@@ -221,19 +231,7 @@ module.exports = NodeHelper.create({
                             return 3;
                         }
                         if (JSON.parse(body).error.includes('vehicle unavailable')) {
-                            if (self.lastUpdates[vehicleIndex].allowWake) {
-                                self.lastUpdates[vehicleIndex].isWaking = true;
-                                self.lastUpdates[vehicleIndex].wakeAttemptCount += 1;
-                                
-                                if (self.lastUpdates[vehicleIndex].wakeAttemptCount > wakeAttemptCountLimit) {
-                                    if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake after 3 attempts'); }
-                                    self.lastUpdates[vehicleIndex].isWaking = false;
-                                    return 5;
-                                }
-                                if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] error "unavailable"; attempting wake'); }
-                                self.lastUpdates[vehicleIndex].wake = Date.now();
-                                self.wakeVehicle(vehicleIndex, () => self.getData(vehicleIndex));
-                            }
+
                             return 4;
                         }
                         if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
@@ -251,7 +249,7 @@ module.exports = NodeHelper.create({
         }
     },
 
-    wakeVehicle: function(vehicleIndex, callback) {
+    wakeVehicle: function(vehicleIndex) {
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
@@ -267,7 +265,6 @@ module.exports = NodeHelper.create({
                 if (!error && response.statusCode == 200) {
                     // send back waking response which contains some interim info
                     if (verb) { self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response); }
-                    setTimeout(callback, wakeDelay * 60000);
                 } else {
                     if (body) {
                         if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
