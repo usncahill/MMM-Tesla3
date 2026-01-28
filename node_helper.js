@@ -72,7 +72,7 @@ module.exports = NodeHelper.create({
             // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
             for (const i of Object.keys(self.lastUpdates)) {
                 const verb = self.config[i].showVerboseConsole;
-//                if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
+                if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
                 
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
                 if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
@@ -84,7 +84,7 @@ module.exports = NodeHelper.create({
             if (gotVehicles) {
                 for (const i of Object.keys(self.lastUpdates)) {
                     var verb = self.config[i].showVerboseConsole;
-//                    if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
+                    if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
                         self.lastUpdates[i].allowWake = false;
@@ -96,8 +96,7 @@ module.exports = NodeHelper.create({
                             Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
                         
                         // if cars asleep/offline and allowed to awake, wake_up
-                        if (self.lastUpdates[i].allowWake && !self.lastUpdates[i].isWaking && 
-                            (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
+                        if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
                             self.lastUpdates[i].wakeAttemptCount += 1;
                             
                             if (self.lastUpdates[i].wakeAttemptCount > wakeAttemptCountLimit) {
@@ -105,22 +104,20 @@ module.exports = NodeHelper.create({
                                 self.lastUpdates[i].wake = Date.now(); // dont attempt again until next wakePeriod to prevent excessive wake
                                 self.lastUpdates[i].wakeAttemptCount = 0;
                                 self.lastUpdates[i].isWaking = false;
-                                return 5;
                             } else {
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
                                 self.lastUpdates[i].wake = Date.now();
                                 self.lastUpdates[i].isWaking = true;
-                                self.wakeVehicle(i, null); //() => { self.lastUpdates[i].isWaking = false; } );
+                                self.wakeVehicle(i, () => { self.lastUpdates[i].isWaking = false; } );
                             }
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
                         } else if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
                             (self.vehicles[i].state === "online" && Date.now() - self.lastUpdates[i].data > 15 * 60000)) { 
-                            if (self.lastUpdates[i].isWaking) {
+                            if (self.lastUpdates[i].wakeAttemptCount > 0) {
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] woke up'); }
                                 self.lastUpdates[i].wakeAttemptCount = 0;
-                                self.lastUpdates[i].isWaking = false;
                             }
                             
                             self.getData(i);
