@@ -72,7 +72,6 @@ module.exports = NodeHelper.create({
             // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
             for (const i of Object.keys(self.lastUpdates)) {
                 const verb = self.config[i].showVerboseConsole;
-                if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                 
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
                 if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
@@ -84,9 +83,9 @@ module.exports = NodeHelper.create({
             if (gotVehicles) {
                 for (const i of Object.keys(self.lastUpdates)) {
                     var verb = self.config[i].showVerboseConsole;
-                    if (self.lastUpdates[i].isWaking) { continue; } // don't try to refresh a waking car
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
+                        if (!self.lastUpdates[i].isWaking) { self.lastUpdates[i].wakeAttemptCount = 0; }
                         self.lastUpdates[i].allowWake = false;
                         self.lastUpdates[i].wakePeriod = getWakePeriod(i);
                         self.lastUpdates[i].refresh = Date.now();
@@ -95,28 +94,36 @@ module.exports = NodeHelper.create({
                         if (self.lastUpdates[i].wakePeriod <= 10 || 
                             Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
                         
-                        // if cars asleep/offline and allowed to awake, wake_up then getData
-                        if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
-                            self.lastUpdates[vehicleIndex].wakeAttemptCount += 1;
+                        // if cars asleep/offline and allowed to awake, wake_up
+                        if ((self.lastUpdates[i].allowWake || self.lastUpdates[i].isWaking ) && 
+                            (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
+                            self.lastUpdates[i].wakeAttemptCount += 1;
                             
-                            if (self.lastUpdates[vehicleIndex].wakeAttemptCount > wakeAttemptCountLimit) {
-                                if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] failed to wake after ' + wakeAttemptCountLimit + ' attempts'); }
-                                self.lastUpdates[vehicleIndex].wake = Date.now(); // dont attempt again until next wakePeriod to prevent excessive wake
-                                self.lastUpdates[vehicleIndex].wakeAttemptCount == 0;
-                                self.lastUpdates[vehicleIndex].isWaking = false;
+                            if (self.lastUpdates[i].wakeAttemptCount > wakeAttemptCountLimit) {
+                                if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] failed to wake after ' + wakeAttemptCountLimit + ' attempts'); }
+                                self.lastUpdates[i].wake = Date.now(); // dont attempt again until next wakePeriod to prevent excessive wake
+                                self.lastUpdates[i].wakeAttemptCount == 0;
+                                self.lastUpdates[i].isWaking = false;
                                 return 5;
                             } else {
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
-                                self.lastUpdates[vehicleIndex].wake = Date.now();
-                                self.lastUpdates[vehicleIndex].isWaking = true;
-                                self.wakeVehicle(vehicleIndex);
+                                self.lastUpdates[i].wake = Date.now();
+                                self.lastUpdates[i].isWaking = true;
+                                self.wakeVehicle(i);
                             }
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
                         } else if ((self.lastUpdates[i].wakePeriod <= 15) || 
                             (self.vehicles[i].state === "driving") || 
                             ((self.vehicles[i].state === "online") && 
-                            Date.now() - self.lastUpdates[i].data > 15 * 60000)) { self.getData(i); }
+                            Date.now() - self.lastUpdates[i].data > 15 * 60000)) { 
+                            if (self.lastUpdates[i].isWaking) {
+                                if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] woke up'); }
+                                self.lastUpdates[i].isWaking = false;
+                            }
+                            
+                            self.getData(i); 
+                        }
                     }
                 }
             }
@@ -137,7 +144,7 @@ module.exports = NodeHelper.create({
                     if ((now > start && now < end) ||
                         (start > end && now > start) ||
                         (start > end && now < end)) {
-                        return Math.max(wakeInts[i].period, minWakePeriod); // found the period for the current time!
+                        return Math.max(wakeInts[i].period, minWakePeriod); // found the period for the current time
                     }
                 }
             }
@@ -231,7 +238,7 @@ module.exports = NodeHelper.create({
                             return 3;
                         }
                         if (JSON.parse(body).error.includes('vehicle unavailable')) {
-
+                            if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] unavailalbe; may be vehicle network strength or connectivity issue.'); }
                             return 4;
                         }
                         if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
