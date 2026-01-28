@@ -110,7 +110,7 @@ module.exports = NodeHelper.create({
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
                                 self.lastUpdates[i].wake = Date.now();
                                 self.lastUpdates[i].isWaking = true;
-                                self.wakeVehicle(i, () => { self.[i].isWaking = false; } );
+                                self.wakeVehicle(i, () => { self.lastUpdates[i].isWaking = false; } );
                             }
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
