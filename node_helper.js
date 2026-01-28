@@ -98,17 +98,16 @@ module.exports = NodeHelper.create({
                         // if cars asleep/offline and allowed to awake, wake_up
                         if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
                             self.lastUpdates[i].wakeAttemptCount += 1;
+                            self.lastUpdates[i].wake = Date.now();
                             
                             if (self.lastUpdates[i].wakeAttemptCount > wakeAttemptCountLimit) {
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] failed to wake after ' + wakeAttemptCountLimit + ' attempts'); }
-                                self.lastUpdates[i].wake = Date.now(); // dont attempt again until next wakePeriod to prevent excessive wake
                                 self.lastUpdates[i].wakeAttemptCount = 0;
-                                self.lastUpdates[i].isWaking = false;
                             } else {
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
-                                self.lastUpdates[i].wake = Date.now();
                                 self.lastUpdates[i].isWaking = true;
                                 self.wakeVehicle(i, () => { self.lastUpdates[i].isWaking = false; } );
+                                continue;
                             }
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
@@ -260,18 +259,17 @@ module.exports = NodeHelper.create({
         
         doWakeVehicle();
         
-        //wake and return to process after 2 minutes
         function doWakeVehicle () {
             request.post({
                 url: urlData + '/api/1/vehicles/' + self.vehicles[vehicleIndex].vin + '/wake_up',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
                            'Content-type': 'application/json' }
             }, function (error, response, body) {
+                if (callback && typeof callback === 'function') { callback(); }
+                
                 if (!error && response.statusCode == 200) {
                     // send back waking response which contains some interim info
                     if (verb) { self.sendSocketNotification('WAKING: [' + vehicleIndex + ']', JSON.parse(body).response); }
-                    
-                    if (callback && typeof callback === 'function') { callback(); }
                 } else {
                     if (body) {
                         if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
