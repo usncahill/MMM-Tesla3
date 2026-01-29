@@ -236,7 +236,7 @@ module.exports = NodeHelper.create({
                             return 3;
                         }
                         if (JSON.parse(body).error.includes('vehicle unavailable')) {
-                            if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] unavailalbe; may be vehicle network strength or connectivity issue.'); }
+                            if (verb) { console.log('MMM-Tesla3: vehicle [' + vehicleIndex + '] unavailable; may be vehicle network strength or connectivity issue.'); }
                             return 4;
                         }
                         if (JSON.parse(body).error.includes('account disabled: EXCEEDED_LIMIT')) {
