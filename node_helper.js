@@ -14,10 +14,10 @@ var clientId = null;
 var accessToken = null;
 const urlData = 'https://fleet-api.prd.na.vn.cloud.tesla.com';
 const urlAuth = 'https://fleet-auth.prd.vn.cloud.tesla.com';
-const minRefreshPeriod = 15;
-const minWakePeriod = 60;
-const wakeDelay = 4;
-const wakeAttemptCountLimit = 3;
+const minRefreshPeriod = 5;           // attempt to refresh data no faster than once per 5 minutes
+const minWakePeriod = 60;             // attempt to wakeVehicle no faster than once per 60 minutes
+const wakeDelay = 4;                  // wait 4 minutes between wake attempts
+const wakeAttemptCountLimit = 3;      // attempt to wakeVehicle 3 times before taking a wakePeriod length break
 
 module.exports = NodeHelper.create({
 
@@ -49,7 +49,8 @@ module.exports = NodeHelper.create({
                 wake: Date.now() - 24 * 60 * 60000,
                 data: Date.now() - 24 * 60 * 60000,
                 refresh: Date.now() - 24 * 60 * 60000,
-                isWaking: false
+                isWaking: false,
+                wakeAttemptCount: 0
             };
             // only the first module should run getVehicles
             if (!self.started) {
@@ -72,6 +73,7 @@ module.exports = NodeHelper.create({
             // loop through all the vehicles on the account, checking whether to refresh; if yes, getVehicles
             for (const i of Object.keys(self.lastUpdates)) {
                 const verb = self.config[i].showVerboseConsole;
+                
                 if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
                 
                 // if any vehicles want a refresh, get the vehicle list to see if they are awake to get data inside the wakePeriod
@@ -84,29 +86,26 @@ module.exports = NodeHelper.create({
             if (gotVehicles) {
                 for (const i of Object.keys(self.lastUpdates)) {
                     var verb = self.config[i].showVerboseConsole;
+                    
                     if (self.lastUpdates[i].isWaking) { continue; } // dont refresh a waking vehicle
                     
                     if (Date.now() - self.lastUpdates[i].refresh > self.config[i].refreshPeriod * 60000) {
                         self.lastUpdates[i].allowWake = false;
                         self.lastUpdates[i].wakePeriod = getWakePeriod(i);
-                        self.lastUpdates[i].refresh = Date.now();
                         
-                        // allowWake if user chose short wakePeriod or enough time has passed
+                        // allowWake if user chose short wakePeriod, attempting to wake, or enough time has passed
                         if (self.lastUpdates[i].wakePeriod <= 10 || 
+                            (self.lastUpdates[i].wakeAttemptCount > 0 && Date.now() - self.lastUpdates[i].wake > wakeDelay * 60000)  ||
                             Date.now() - self.lastUpdates[i].wake > self.lastUpdates[i].wakePeriod * 60000) { self.lastUpdates[i].allowWake = true; }
                         
                         // if cars asleep/offline and allowed to awake, wake_up
-                        if (self.lastUpdates[i].allowWake && (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
-                            self.lastUpdates[i].wakeAttemptCount += 1;
-                            self.lastUpdates[i].wake = Date.now();
-                            
-                            if (self.lastUpdates[i].wakeAttemptCount > wakeAttemptCountLimit) {
+                        if ((self.lastUpdates[i].allowWake) && (self.vehicles[i].state === "asleep" || self.vehicles[i].state === "offline")) {
+                            if (self.lastUpdates[i].wakeAttemptCount >= wakeAttemptCountLimit) {
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] failed to wake after ' + wakeAttemptCountLimit + ' attempts'); }
                                 self.lastUpdates[i].wakeAttemptCount = 0;
                             } else {
                                 if (verb) { console.log('MMM-Tesla3: vehicle [' + i + '] is ' + self.vehicles[i].state + '; attempting wake'); }
-                                self.lastUpdates[i].isWaking = true;
-                                self.wakeVehicle(i, null); //() => { self.lastUpdates[i].isWaking = false; } );
+                                self.wakeVehicle(i);
                             }
                         // if user used low wakePeriod, dont worry about keeping the car awake with data requests
                         // otherwise, only get data if driving or if the car has had enough time to fall asleep
@@ -120,11 +119,15 @@ module.exports = NodeHelper.create({
                             
                             self.getData(i);
                         }
+                        
+                        // update refresh time; avoid updating if wakeVehicle was attempted on this pass
+                        if (!self.lastUpdates[i].isWaking) { self.lastUpdates[i].refresh = Date.now(); }
                     }
                 }
             }
         }).catch((error) => {
-            // do nothing; the error likely showed a console.log
+            console.log('MMM-Tesla3: Unhandled error during check update:\nerror:'+error.message);
+            return 99;
         });
         
         function getWakePeriod(vehicleIndex) {
@@ -153,9 +156,9 @@ module.exports = NodeHelper.create({
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
         
-        goGetVehicleList();
+        doGetVehicleList();
         
-        function goGetVehicleList() {
+        function doGetVehicleList() {
             request.get({
                 url: urlData + '/api/1/vehicles',
                 headers: { 'Authorization': 'Bearer ' + accessToken.access_token, 
@@ -213,7 +216,6 @@ module.exports = NodeHelper.create({
             }, function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     self.lastUpdates[vehicleIndex].data = Date.now();
-                    self.lastUpdates[vehicleIndex].isWaking = false;
                     self.sendSocketNotification('UPDATE: [' + vehicleIndex + ']', self.lastUpdates[vehicleIndex]);
                     
                     self.vehicle_data[vehicleIndex] = JSON.parse(body).response;
@@ -252,9 +254,12 @@ module.exports = NodeHelper.create({
         }
     },
 
-    wakeVehicle: function(vehicleIndex, callback) {
+    wakeVehicle: function(vehicleIndex) {
         var self = this;
         var verb = self.config[vehicleIndex].showVerboseConsole;
+        self.lastUpdates[vehicleIndex].wakeAttemptCount += 1;
+        self.lastUpdates[vehicleIndex].wake = Date.now();
+        self.lastUpdates[vehicleIndex].isWaking = true;
         
         doWakeVehicle();
         
@@ -265,8 +270,6 @@ module.exports = NodeHelper.create({
                            'Content-type': 'application/json' }
             }, function (error, response, body) {
                 self.lastUpdates[vehicleIndex].isWaking = false;
-                
-                if (callback && typeof callback === 'function') { callback(); }
                 
                 if (!error && response.statusCode == 200) {
                     // send back waking response which contains some interim info
